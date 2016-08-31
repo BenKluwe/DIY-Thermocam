@@ -322,6 +322,12 @@ void initDisplay() {
 	setDisplayRotation();
 	//Link display library to image array
 	display.imagePtr = image;
+	//If returning from mass storage, do not check
+	if (EEPROM.read(eeprom_massStorage) == eeprom_setValue) {
+		//Reset marker
+		EEPROM.write(eeprom_massStorage, 0);
+		return;
+	}
 	//Check status by writing test pixel red to 10/10
 	display.setXY(10, 10, 10, 10);
 	display.setPixel(VGA_RED);

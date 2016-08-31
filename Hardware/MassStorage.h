@@ -91,6 +91,8 @@ void massStorage() {
 	else {
 		drawMessage((char*) "Disconnect USB cable to return !");
 		delay(1500);
+		//Set marker
+		EEPROM.write(eeprom_massStorage, eeprom_setValue);
 		restartAndJumpToApp();
 	}
 }

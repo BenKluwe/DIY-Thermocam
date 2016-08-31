@@ -98,6 +98,7 @@
 #define eeprom_adjCombSet 126
 #define eeprom_minMaxPoints 127
 #define eeprom_screenOffTime 128
+#define eeprom_massStorage 129
 #define eeprom_calSlopeSet 130
 #define eeprom_calSlopeBase 131 //4 Byte (131-134)
 #define eeprom_firstStart 150

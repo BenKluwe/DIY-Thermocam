@@ -74,3 +74,4 @@ void compensateCalib();
 void checkImageSave();
 void createSDName(char* filename, bool folder = false);
 void toggleLaser(bool message = false);
+void saveScreenshot();
