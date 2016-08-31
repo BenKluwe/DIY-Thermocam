@@ -61,6 +61,8 @@ void timeDateScreen() {
 	setTime(12, 30, 30, 15, 6, 2016);
 	timeAndDateMenu(true);
 	timeAndDateMenuHandler(true);
+	//Set time to RTC
+	Teensy3Clock.set(now());
 }
 
 /* Setting screen for the temperature format */
@@ -81,13 +83,13 @@ void tempFormatScreen() {
 /* Setting screen for the convert image option */
 void convertImageScreen() {
 	String text[7];
-	text[0] = "Convert image";
-	text[1] = "In the next screen, please select";
-	text[2] = "if you want to create a bitmap";
+	text[0] = "Convert DAT to BMP";
+	text[1] = "In the next screen, select if";
+	text[2] = "you also want to create a bitmap";
 	text[3] = "file for every saved thermal";
-	text[4] = "image automatically on the device.";
-	text[5] = "You can also convert images man-";
-	text[6] = "ually in the Load Menu later.";
+	text[4] = "raw image file on the device. ";
+	text[5] = "You can still convert images man-";
+	text[6] = "ually in the load menu later.";
 	infoScreen(text);;
 	//Convert image
 	convertImageMenu(true);
@@ -96,16 +98,40 @@ void convertImageScreen() {
 /* Setting screen for the visual image option */
 void visualImageScreen() {
 	String text[7];
-	text[0] = "Visual image";
+	text[0] = "Save visual image";
 	text[1] = "In the next screen, choose";
-	text[2] = "whether you want to save";
-	text[3] = "a visual image together";
-	text[4] = "with the thermal image each";
-	text[5] = "time. Enable this if you want";
-	text[6] = "to create combined images.";
+	text[2] = "if you want to save an addi-";
+	text[3] = "tional visual image together";
+	text[4] = "with each saved thermal image.";
+	text[5] = "Enable this if you want to";
+	text[6] = "create combined images on the PC.";
 	infoScreen(text);
 	//Visual image
 	visualImageMenu(true);
+}
+
+/* Setting screen for the combined image alignment */
+void combinedAlignmentScreen() {
+	String text[7];
+	text[0] = "Combined Alignment";
+	text[1] = "In the next screen, you can";
+	text[2] = "align the thermal image on";
+	text[3] = "top of the visual image. Use";
+	text[4] = "the buttons to increment,";
+	text[5] = "decremenet or move the thermal";
+	text[6] = "image for a best fit of both.";
+	infoScreen(text);
+	//Set color scheme to rainbow
+	colorMap = colorMap_rainbow;
+	colorElements = 256;
+	//Reset adjustment values
+	adjCombFactor = 1.0;
+	adjCombLeft = 0;
+	adjCombRight = 0;
+	adjCombUp = 0;
+	adjCombDown = 0;
+	//Adjust combined menu
+	adjustCombinedMenu(true);
 }
 
 /* Setting screen for the calibration procedure */
@@ -202,12 +228,13 @@ void stdEEPROMSet() {
 	EEPROM.write(eeprom_pointsEnabled, false);
 	EEPROM.write(eeprom_storageEnabled, false);
 	EEPROM.write(eeprom_displayMode, displayMode_thermal);
+	EEPROM.write(eeprom_textColor, textColor_white);
+	EEPROM.write(eeprom_minMaxPoints, minMaxPoints_none);
+	EEPROM.write(eeprom_screenOffTime, screenOffTime_disabled);
 	//Set Color Scheme to Rainbow
 	EEPROM.write(eeprom_colorScheme, colorScheme_rainbow);
 	//Set filter type to box blur
 	EEPROM.write(eeprom_filterType, filterType_gaussian);
-	//Set mass storage to false
-	EEPROM.write(eeprom_massStorage, false);
 	//Set current firmware version
 	EEPROM.write(eeprom_fwVersion, fwVersion);
 	//Set first start marker to true
@@ -228,6 +255,8 @@ void firstStart() {
 	convertImageScreen();
 	//Hint screen for the visual image settings
 	visualImageScreen();
+	//Hint screen for the combined image setting
+	combinedAlignmentScreen();
 	//Do the first time calibration
 	calibrationScreen();
 	//Set EEPROM values

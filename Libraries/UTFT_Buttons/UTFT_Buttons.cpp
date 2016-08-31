@@ -33,13 +33,14 @@ int UTFT_Buttons::addButton(uint16_t x, uint16_t y, uint16_t width,
 		buttons[btcnt].flags = flags;
 		buttons[btcnt].label = label;
 		buttons[btcnt].data = NULL;
+		buttons[btcnt].palette = NULL;
 		buttons[btcnt].largetouch = largetouch;
 		return btcnt;
 	}
 }
 
 int UTFT_Buttons::addButton(uint16_t x, uint16_t y, uint16_t width,
-	uint16_t height, bitmapdatatype data, uint16_t flags)
+	uint16_t height, const uint8_t* data, const uint16_t* palette, uint16_t flags)
 {
 	int btcnt = 0;
 
@@ -57,6 +58,7 @@ int UTFT_Buttons::addButton(uint16_t x, uint16_t y, uint16_t width,
 		buttons[btcnt].flags = flags | BUTTON_BITMAP;
 		buttons[btcnt].label = NULL;
 		buttons[btcnt].data = data;
+		buttons[btcnt].palette = palette;
 		return btcnt;
 	}
 }
@@ -76,9 +78,9 @@ void UTFT_Buttons::drawButton(int buttonID) {
 	word _current_back = _UTFT->getBackColor();
 
 	if (buttons[buttonID].flags & BUTTON_BITMAP) {
-		_UTFT->drawBitmap(buttons[buttonID].pos_x, buttons[buttonID].pos_y,
+		_UTFT->writeRect2BPP(buttons[buttonID].pos_x, buttons[buttonID].pos_y,
 			buttons[buttonID].width, buttons[buttonID].height,
-			buttons[buttonID].data);
+			buttons[buttonID].data, buttons[buttonID].palette);
 		if (!(buttons[buttonID].flags & BUTTON_NO_BORDER)) {
 			if ((buttons[buttonID].flags & BUTTON_DISABLED))
 				_UTFT->setColor(_color_text_inactive);

@@ -19,7 +19,9 @@ typedef struct {
 	uint16_t pos_x, pos_y, width, height;
 	uint16_t flags;
 	bool largetouch;
-	char *label;bitmapdatatype data;
+	char *label;
+	const uint8_t* data;
+	const uint16_t* palette;
 }button_type;
 
 class UTFT_Buttons {
@@ -29,7 +31,7 @@ public:
 	int addButton(uint16_t x, uint16_t y, uint16_t width, uint16_t height,
 			char *label, uint16_t flags = 0, bool largetouch = false);
 	int addButton(uint16_t x, uint16_t y, uint16_t width, uint16_t height,
-			bitmapdatatype data, uint16_t flags=0);
+			const uint8_t* data, const uint16_t* palette, uint16_t flags=0);
 			void drawButtons();
 			void drawButton(int buttonID);
 			void enableButton(int buttonID, boolean redraw=false);

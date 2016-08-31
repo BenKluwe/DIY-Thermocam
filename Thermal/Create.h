@@ -41,6 +41,7 @@ void gaussianFilter() {
 	}
 }
 
+
 /* Store one package of 80 columns into RAM */
 bool savePackage(byte line, byte segment = 0) {
 	//Go through the video pixels for one video line
@@ -150,7 +151,7 @@ void getTemperatures() {
 						if (showMenu) {
 							leptonEndSPI();
 							return;
-						}	
+						}
 						//Reset segment
 						segment = 1;
 						//Reset lepton error
@@ -176,6 +177,28 @@ void getTemperatures() {
 	}
 	//End Lepton SPI
 	leptonEndSPI();
+}
+
+
+/* Find the position of the minimum and maximum value */
+void findMinMaxPositions()
+{
+	uint16_t min = 65535;
+	uint16_t max = 0;
+	//Go through the image
+	for (int i = 0; i < 19200; i++)
+	{
+		if (image[i] < min)
+		{
+			minTempPos = i;
+			min = image[i];
+		}
+		if (image[i] > max)
+		{
+			maxTempPos = i;
+			max = image[i];
+		}
+	}
 }
 
 /* Scale the values from 0 - 255 */
@@ -231,19 +254,39 @@ void createVisCombImg() {
 	getTemperatures();
 	//Compensate calibration with object temp
 	compensateCalib();
+
 	//Refresh the temp points if required
 	if (pointsEnabled)
 		refreshTempPoints();
+
 	//Find min and max if not in manual mode and limits not locked
 	if ((agcEnabled) && (!limitsLocked)) {
 		//Limit values if we are in the menu or not in cold/hot mode
 		if ((colorScheme != colorScheme_coldest) && (colorScheme != colorScheme_hottest))
 			limitValues();
 	}
-	//Scale the values
-	scaleValues();
-	//Convert lepton data to RGB565 colors
-	convertColors();
+
+	//Find min / max position
+	if (minMaxPoints != minMaxPoints_none)
+		findMinMaxPositions();
+
+	//For combined only
+	if (displayMode == displayMode_combined) {
+		//Apply low-pass filter
+		if (filterType == filterType_box)
+			boxFilter();
+		else if (filterType == filterType_gaussian)
+			gaussianFilter();
+		//Scale the values
+		scaleValues();
+		//Convert lepton data to RGB565 colors
+		convertColors();
+	}
+
+	//Resize the image
+	resizeOptical();
+	//Move the image
+	moveOptical();
 	//Get the visual image and decompress it combined
 	getVisualImage();
 }
@@ -267,14 +310,18 @@ void createThermalImg(bool menu) {
 	}
 
 	//If image save, save the raw data
-	if (imgSave == imgSave_create) 
+	if (imgSave == imgSave_create)
 		saveRawData(true, saveFilename);
-		
+
 	//Apply low-pass filter
 	if (filterType == filterType_box)
 		boxFilter();
 	else if (filterType == filterType_gaussian)
 		gaussianFilter();
+
+	//Find min / max position
+	if(minMaxPoints != minMaxPoints_none)
+		findMinMaxPositions();
 
 	//Scale the values
 	scaleValues();
@@ -355,6 +402,39 @@ void tempPointFunction(bool remove) {
 		showTemp[(y * 16) + x] = 1;
 }
 
+/* Display the minimum and maximum point on the screen */
+void displayMinMaxPoint(uint16_t pixelIndex, const char *str)
+{
+	//Get xpos and ypos
+	uint16_t xpos = (pixelIndex % 160) * 2;
+	uint16_t ypos = (pixelIndex / 160) * 2;
+
+	//Compensate in visual or combined mode
+	if (displayMode != displayMode_thermal) {
+		ypos = ypos + (5 * adjCombDown) - (5 * adjCombUp);
+		xpos = xpos + (5 * adjCombRight) - (5 * adjCombLeft);
+	}
+
+	//Limit position
+	if (ypos > 240)
+		ypos = 240;
+	if (xpos > 320)
+		xpos = 320;
+	if (xpos < 0)
+		xpos = 0;
+	if (ypos < 0)
+		ypos = 0;
+	//Draw the marker
+	display.drawLine(xpos / 2, ypos / 2, xpos / 2, ypos / 2);
+	//Draw the string
+	xpos += 4;
+	if (xpos >= 310)
+		xpos -= 10;
+	if (ypos > 230)
+		ypos = 230;
+	display.print(str, xpos, ypos);
+}
+
 /* Clears the show temperatures array */
 void clearTemperatures() {
 	//Set all showTemps to zero
@@ -373,6 +453,11 @@ void showTemperatures() {
 			if (showTemp[(y * 16) + x] != 0) {
 				xpos = x * 20;
 				ypos = y * 20;
+				//Compensate in visual or combined mode
+				if (displayMode != displayMode_thermal) {
+					ypos = ypos + (5 * adjCombDown) - (5 * adjCombUp);
+					xpos = xpos + (5 * adjCombRight) - (5 * adjCombLeft);
+				}
 				if (ypos <= 12)
 					ypos = 13;
 				display.print((char*) ".", xpos, ypos - 10);

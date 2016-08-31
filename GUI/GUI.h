@@ -5,8 +5,13 @@
 #include "Bitmaps.h"
 
 /* Draw a message on the screen */
-void drawMessage(char* message) {
-	display.fillScr(127, 127, 127);
+void drawMessage(char* message, bool small) {
+	if (!small)
+		display.fillScr(127, 127, 127);
+	else {
+		display.setColor(127, 127, 127);
+		display.fillRoundRect(6, 6, 314, 234);
+	}
 	display.setFont(smallFont);
 	display.setBackColor(127, 127, 127);
 	display.setColor(VGA_WHITE);
@@ -14,13 +19,37 @@ void drawMessage(char* message) {
 }
 
 /* Draw a title on the screen */
-void drawTitle(char* name) {
-	display.fillScr(127, 127, 127);
+void drawTitle(char* name, bool firstStart = false) {
+	if (firstStart)
+		display.fillScr(127, 127, 127);
+	else {
+		display.setColor(127, 127, 127);
+		display.fillRoundRect(6, 6, 314, 234);
+	}
 	display.setFont(bigFont);
 	display.setBackColor(127, 127, 127);
 	display.setColor(VGA_WHITE);
 	display.print(name, CENTER, 25);
 	display.setFont(smallFont);
+}
+
+/* Sets the text color to the right one */
+void setTextColor() {
+	//Red
+	if (textColor == textColor_red)
+		display.setColor(VGA_RED);
+	//Black
+	else if (textColor == textColor_black)
+		display.setColor(VGA_BLACK);
+	//Green
+	else if (textColor == textColor_green)
+		display.setColor(VGA_GREEN);
+	//Blue
+	else if (textColor == textColor_blue)
+		display.setColor(VGA_BLUE);
+	//White
+	else
+		display.setColor(VGA_WHITE);
 }
 
 /* Shows the hadware diagnostics */
@@ -103,7 +132,7 @@ void showSaveMessage() {
 	}
 	//Visual only
 	else if (displayMode == displayMode_visual) {
-		showMsg((char*) "Save Visual JPEG..");
+		showMsg((char*) "Save Visual BMP..");
 	}
 	//Combined
 	else if (displayMode == displayMode_combined) {
@@ -227,67 +256,8 @@ void displayTime() {
 	}
 }
 
-/* Updates the additional information on the screen */
-void updateInfos(bool refresh) {
-	//Set Text Color
-	display.setColor(VGA_WHITE);
-	display.setBackColor(127, 127, 127);
-	if (refresh) {
-		//Display battery status on screen
-		displayBatteryStatus();
-		//Display date
-		displayDate();
-		//Display free space
-		displayFreeSpace();
-	}
-	//Display time
-	displayTime();
-}
-
-/* Touch handler for the main menu */
-void mainMenuHandler() {
-	//Update infos on the screen
-	updateInfos(false);
-	//Touch pressed
-	if (touch.touched() == true) {
-		int pressedButton = touchButtons.checkButtons();
-		//Live Mode
-		if (pressedButton == 0) {
-			drawMessage((char*) "Please wait..");
-			liveMode();
-		}
-		//Load Menu
-		else if (pressedButton == 1) {
-			loadThermal();
-		}
-		//Settings Menu
-		else if (pressedButton == 2) {
-			settingsMenu();
-			settingsMenuHandler();
-		}
-		//File Transfer
-		else if (pressedButton == 3) {
-			massStorage();
-		}
-	}
-}
-
-/* Displays the main menu on the screen */
-void mainMenu() {
-	drawTitle((char*) "Main Menu");
-	touchButtons.deleteAllButtons();
-	touchButtons.addButton(20, 60, 130, 70, (char*)"Live Mode");
-	touchButtons.addButton(170, 60, 130, 70, (char*) "Load Menu");
-	touchButtons.addButton(20, 150, 130, 70,
-		(char*) "Settings Menu");
-	touchButtons.addButton(170, 150, 130, 70, (char*) "File Transfer");
-	touchButtons.drawButtons();
-	refreshFreeSpace();
-	updateInfos(true);
-}
-
 /*Include section */
-#include "LiveMenu.h"
+#include "MainMenu.h"
 #include "LoadMenu.h"
 #include "SettingsMenu.h"
 #include "FirstStart.h"

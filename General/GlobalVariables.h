@@ -14,6 +14,10 @@ Touchscreen touch;
 ADC *batMeasure;
 //Buttons
 UTFT_Buttons touchButtons(&display, &touch);
+//Timer
+Metro screenOff;
+bool screenPressed;
+byte screenOffTime;
 //Button Debouncer
 Bounce buttonDebouncer(pin_button, 100);
 Bounce touchDebouncer(pin_touch_irq, 100);
@@ -52,15 +56,20 @@ bool mlx90614Version;
 byte leptonVersion;
 //Temperature format
 bool tempFormat;
+//Text color
+byte textColor;
 //Laser state
 bool laserEnabled;
 //Shutter modus
-bool shutterMode;
+byte shutterMode;
 //Display mode
 byte displayMode;
 //Variables for color calculation
 uint16_t maxTemp;
 uint16_t minTemp;
+//Position of min and maxtemp
+uint16_t minTempPos;
+uint16_t maxTempPos;
 
 //If enabled, image will be converted to bitmap every time
 bool convertEnabled;
@@ -83,6 +92,7 @@ bool pointsEnabled;
 bool storageEnabled;
 byte filterType;
 bool ambientEnabled;
+byte minMaxPoints;
 
 //Calibration offset
 float calOffset;
@@ -94,6 +104,13 @@ byte calStatus;
 float calComp;
 //Calibration warmup timer
 long calTimer;
+
+//Adjust combined image
+float adjCombFactor;
+byte adjCombLeft;
+byte adjCombRight;
+byte adjCombUp;
+byte adjCombDown;
 
 //Save Image in the next cycle
 volatile byte imgSave;

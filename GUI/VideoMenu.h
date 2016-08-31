@@ -46,7 +46,7 @@ void videoIntervalString(int pos) {
 		break;
 	}
 	//Draws the current selection
-	liveMenuSelection(text);
+	mainMenuSelection(text);
 }
 
 /* Touch Handler for the video interval chooser */
@@ -127,7 +127,7 @@ bool videoIntervalChooser() {
 	display.setColor(VGA_BLACK);
 	display.fillRoundRect(5, 5, 315, 235);
 	//Background
-	liveMenuBackground();
+	mainMenuBackground();
 	//Buttons
 	touchButtons.deleteAllButtons();
 	touchButtons.setTextFont(bigFont);
@@ -140,7 +140,7 @@ bool videoIntervalChooser() {
 	display.setColor(255, 106, 0);
 	display.drawRect(65, 57, 257, 111);
 	//Title
-	liveMenuTitle((char*) "Choose interval");
+	mainMenuTitle((char*) "Choose interval");
 	//Current choice name
 	videoIntervalString(0);
 	//Touch handler - return true if exit to Main menu, otherwise false
@@ -319,7 +319,7 @@ void videoCapture() {
 	if ((framesCaptured > 0) && (videoInterval != 0)) {
 		videoSave = true;
 		//Ask the user if he wants to convert that video
-		if (convertPrompt(true)) {
+		if (convertPrompt()) {
 			drawMessage((char*) "Capture finished ! Converting..");
 			delay(1000);
 			//Attach the Button interrupt
@@ -364,8 +364,8 @@ bool videoModeChooser() {
 		return false;
 	}
 	//Title & Background
-	liveMenuBackground();
-	liveMenuTitle((char*)"Video mode");
+	mainMenuBackground();
+	mainMenuTitle((char*)"Video mode");
 	//Draw the buttons
 	touchButtons.deleteAllButtons();
 	touchButtons.setTextFont(bigFont);

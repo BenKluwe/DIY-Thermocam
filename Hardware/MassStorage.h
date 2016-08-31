@@ -91,12 +91,6 @@ void massStorage() {
 	else {
 		drawMessage((char*) "Disconnect USB cable to return !");
 		delay(1500);
-		//No warmup needed after restart if done previously
-		if (calStatus != cal_warmup)
-			EEPROM.write(eeprom_massStorage, eeprom_setValue);
-		//Fix display diagnostic error
-		else
-			EEPROM.write(eeprom_massStorage, eeprom_massStorage);
 		restartAndJumpToApp();
 	}
 }

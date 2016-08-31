@@ -10,8 +10,9 @@
 */
 
 /* Current firmware version */
-#define Version "Firmware 1.25 from 15.08.2016"
-#define fwVersion 125
+
+#define Version "Firmware 2.00 from 31.08.2016"
+#define fwVersion 200
 
 /* Libraries */
 #include <ADC.h>
@@ -26,6 +27,7 @@
 #include <UTFT.h>
 #include <Touchscreen.h>
 #include <Camera.h>
+#include <Metro.h>
 
 /* General Includes */
 #include "General/ColorSchemes.h"
@@ -55,7 +57,8 @@ void setup()
 	//Read EEPROM settings
 	readEEPROM();
 	//Show the live mode helper
-	if (checkLiveModeHelper())
+	if (checkLiveModeHelper())	
+		//Show the live mode helper
 		liveModeHelper();
 	//Go to the live Mode
 	liveMode();
@@ -64,6 +67,4 @@ void setup()
 /* Loop forever */
 void loop()
 {
-	//Main Menu Handler
-	mainMenuHandler();
 }

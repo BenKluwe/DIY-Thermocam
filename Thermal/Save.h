@@ -101,7 +101,7 @@ void createBMPFile(char* filename) {
 	//File extension and open
 	strcpy(&filename[14], ".BMP");
 	sdFile.open(filename, O_RDWR | O_CREAT | O_AT_END);
-	//Create the Thermal Image File header
+	//640 x 480 file header
 	const char bmp_header[66] = { 0x42, 0x4D, 0x36, 0x60, 0x09, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x42, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00,
 		0x80, 0x02, 0x00, 0x00, 0xE0, 0x01, 0x00, 0x00, 0x01, 0x00, 0x10,
@@ -215,7 +215,7 @@ void saveDisplayImage(char* filename, char* dirname) {
 				sdBuffer[x * 2] = pixel & 0x00FF;
 				sdBuffer[(x * 2) + 1] = (pixel & 0xFF00) >> 8;
 			}
-			//Write them to the sd card and double for better resolution
+			//Write them to the sd card with 640x480 resolution
 			for (int i = 0; i < 2; i++) {
 				for (uint16_t x = 0; x < 320; x++) {
 					sdFile.write(sdBuffer[x * 2]);
@@ -253,8 +253,17 @@ void saveImage() {
 		createJPGFile(saveFilename);
 		//Display message
 		showMsg((char*) "Save Visual JPG..");
-		//Save visual image
-		saveVisualImage();
+		//For old hardware, save mirrored image
+		if (mlx90614Version == mlx90614Version_old) {
+			changeCamRes(VC0706_160x120);
+			createVisCombImg();
+			display.writeScreen(image);
+			saveDisplayImage(saveFilename);
+			changeCamRes(VC0706_640x480);
+		}
+		else
+			//Save visual image in full-res for new HW
+			saveVisualImage();
 	}
 
 	//Show Message on screen

@@ -2,21 +2,177 @@
 * Settings menu to adjust settings
 */
 
+
+/* Draws a loading box for the combined image */
+void adjustCombinedLoading() {
+	//Fill replacement
+	display.setColor(VGA_WHITE);
+	display.fillRect(80, 50, 240, 170);
+	//Draw the border for the preview image
+	display.setColor(VGA_BLACK);
+	display.setBackColor(VGA_WHITE);
+	display.print((char*) "Please wait..", CENTER, 100);
+}
+
+/* Touch handler for the adjust combined menu */
+void adjustCombinedMenuHandler() {
+	//Touch handler
+	while (true) {
+		//Check for touch
+		if (touch.touched() == true) {
+			int pressedButton = touchButtons.checkButtons(true);
+			//Increment
+			if (pressedButton == 0) {
+				if (adjCombFactor < 1.0) {
+					adjustCombinedLoading();
+					adjCombFactor += 0.05;
+					createVisCombImg();
+					display.drawBitmap(80, 50, 160, 120, image, 1);
+				}
+			}
+			//Decrement
+			else if (pressedButton == 1) {
+				if (adjCombFactor > 0.5) {
+					adjustCombinedLoading();
+					adjCombFactor -= 0.05;
+					createVisCombImg();
+					display.drawBitmap(80, 50, 160, 120, image, 1);
+				}
+			}
+			//Left
+			else if (pressedButton == 2) {
+				if (adjCombLeft < 10) {
+					adjustCombinedLoading();
+					if (adjCombRight > 0)
+						adjCombRight -= 1;
+					else
+						adjCombLeft += 1;
+					createVisCombImg();
+					display.drawBitmap(80, 50, 160, 120, image, 1);
+				}
+			}
+			//Right
+			else if (pressedButton == 3) {
+				if (adjCombRight < 10) {
+					adjustCombinedLoading();
+					if (adjCombLeft > 0)
+						adjCombLeft -= 1;
+					else
+						adjCombRight += 1;
+					createVisCombImg();
+					display.drawBitmap(80, 50, 160, 120, image, 1);
+				}
+			}
+			//Up
+			else if (pressedButton == 4) {
+				if (adjCombUp < 10) {
+					adjustCombinedLoading();
+					if (adjCombDown > 0)
+						adjCombDown -= 1;
+					else
+						adjCombUp += 1;
+					createVisCombImg();
+					display.drawBitmap(80, 50, 160, 120, image, 1);
+				}
+			}
+			//Down
+			else if (pressedButton == 5) {
+				if (adjCombDown < 10) {
+					adjustCombinedLoading();
+					if (adjCombUp > 0)
+						adjCombUp -= 1;
+					else
+						adjCombDown += 1;
+					createVisCombImg();
+					display.drawBitmap(80, 50, 160, 120, image, 1);
+				}
+			}
+			//OK
+			else if (pressedButton == 6) {
+				//Save values to EEPROM
+				EEPROM.write(eeprom_adjCombLeft, adjCombLeft);
+				EEPROM.write(eeprom_adjCombRight, adjCombRight);
+				EEPROM.write(eeprom_adjCombUp, adjCombUp);
+				EEPROM.write(eeprom_adjCombDown, adjCombDown);
+				EEPROM.write(eeprom_adjCombFactor, round(adjCombFactor * 100.0));
+				EEPROM.write(eeprom_adjCombSet, eeprom_setValue);
+				//Go back
+				return;
+			}
+			//Reset
+			else if (pressedButton == 7) {
+				adjustCombinedLoading();
+				adjCombLeft = 0;
+				adjCombRight = 0;
+				adjCombUp = 0;
+				adjCombDown = 0;
+				adjCombFactor = 1.0;
+				createVisCombImg();
+				display.drawBitmap(80, 50, 160, 120, image, 1);
+			}
+		}
+	}
+}
+
+/* Adjust combined menu */
+void adjustCombinedMenu(bool firstStart) {
+	//Draw the title
+	if (firstStart)
+		display.fillScr(127, 127, 127);
+	else {
+		display.setColor(127, 127, 127);
+		display.fillRoundRect(6, 6, 314, 234);
+	}
+	display.setFont(bigFont);
+	display.setBackColor(127, 127, 127);
+	display.setColor(VGA_WHITE);
+	display.print((char*) "Align combined", CENTER, 18);
+	display.setFont(smallFont);
+	//Buttons
+	touchButtons.deleteAllButtons();
+	touchButtons.setTextFont(smallFont);
+	touchButtons.addButton(15, 180, 55, 40, (char*) "Inc.");
+	touchButtons.addButton(250, 180, 55, 40, (char*) "Dec.");
+	touchButtons.addButton(15, 115, 55, 55, (char*) "Left");
+	touchButtons.addButton(250, 115, 55, 55, (char*) "Right");
+	touchButtons.addButton(15, 50, 55, 55, (char*) "Up");
+	touchButtons.addButton(250, 50, 55, 55, (char*) "Down");
+	touchButtons.addButton(165, 180, 75, 40, (char*) "OK");
+	touchButtons.addButton(80, 180, 75, 40, (char*) "Reset");
+	touchButtons.drawButtons();
+	//Fill replacement
+	adjustCombinedLoading();
+	//Draw Border
+	display.drawRect(79, 49, 241, 171);
+	//Prepare the preview image
+	byte displayMode_old = displayMode;
+	displayMode = displayMode_combined;
+	combinedDecomp = true;
+	changeCamRes(VC0706_160x120);
+	createVisCombImg();
+	//Display the preview image
+	display.drawBitmap(80, 50, 160, 120, image, 1);
+	//Run the handler
+	adjustCombinedMenuHandler();
+	//Restore the old mode
+	if (displayMode != displayMode_combined)
+		combinedDecomp = false;
+	if (displayMode == displayMode_thermal)
+		changeCamRes(VC0706_640x480);
+	displayMode = displayMode_old;
+}
+
 /* Second Menu */
 void secondMenu(bool firstStart) {
-	drawTitle((char*) "Second");
+	drawTitle((char*) "Second", firstStart);
 	touchButtons.deleteAllButtons();
 	touchButtons.addButton(20, 60, 70, 70, (char*) "-");
 	touchButtons.addButton(230, 60, 70, 70, (char*) "+");
 	touchButtons.addButton(20, 150, 280, 70, (char*) "Back");
 	touchButtons.drawButtons();
 	drawCenterElement(second());
-	if (!firstStart)
-		updateInfos(true);
 	//Touch handler
-	while (1) {
-		if (!firstStart)
-			updateInfos(false);
+	while (true) {
 		//touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
@@ -54,19 +210,15 @@ void secondMenu(bool firstStart) {
 
 /* Minute Menu */
 void minuteMenu(bool firstStart) {
-	drawTitle((char*) "Minute");
+	drawTitle((char*) "Minute", firstStart);
 	touchButtons.deleteAllButtons();
 	touchButtons.addButton(20, 60, 70, 70, (char*) "-");
 	touchButtons.addButton(230, 60, 70, 70, (char*) "+");
 	touchButtons.addButton(20, 150, 280, 70, (char*) "Back");
 	touchButtons.drawButtons();
 	drawCenterElement(minute());
-	if (!firstStart)
-		updateInfos(true);
 	//Touch handler
-	while (1) {
-		if (!firstStart)
-			updateInfos(false);
+	while (true) {
 		//touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
@@ -104,19 +256,15 @@ void minuteMenu(bool firstStart) {
 
 /* Hour menu */
 void hourMenu(bool firstStart) {
-	drawTitle((char*) "Hour");
+	drawTitle((char*) "Hour", firstStart);
 	touchButtons.deleteAllButtons();
 	touchButtons.addButton(20, 60, 70, 70, (char*) "-");
 	touchButtons.addButton(230, 60, 70, 70, (char*) "+");
 	touchButtons.addButton(20, 150, 280, 70, (char*) "Back");
 	touchButtons.drawButtons();
 	drawCenterElement(hour());
-	if (!firstStart)
-		updateInfos(true);
 	//Touch handler
-	while (1) {
-		if (!firstStart)
-			updateInfos(false);
+	while (true) {
 		//touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
@@ -154,19 +302,15 @@ void hourMenu(bool firstStart) {
 
 /* Day Menu */
 void dayMenu(bool firstStart) {
-	drawTitle((char*) "Day");
+	drawTitle((char*) "Day", firstStart);
 	touchButtons.deleteAllButtons();
 	touchButtons.addButton(20, 60, 70, 70, (char*) "-");
 	touchButtons.addButton(230, 60, 70, 70, (char*) "+");
 	touchButtons.addButton(20, 150, 280, 70, (char*) "Back");
 	touchButtons.drawButtons();
 	drawCenterElement(day());
-	if (!firstStart)
-		updateInfos(true);
 	//Touch handler
-	while (1) {
-		if (!firstStart)
-			updateInfos(false);
+	while (true) {
 		//touch press
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
@@ -205,19 +349,15 @@ void dayMenu(bool firstStart) {
 
 /* Month Menu */
 void monthMenu(bool firstStart) {
-	drawTitle((char*) "Month");
+	drawTitle((char*) "Month", firstStart);
 	touchButtons.deleteAllButtons();
 	touchButtons.addButton(20, 60, 70, 70, (char*) "-");
 	touchButtons.addButton(230, 60, 70, 70, (char*) "+");
 	touchButtons.addButton(20, 150, 280, 70, (char*) "Back");
 	touchButtons.drawButtons();
 	drawCenterElement(month());
-	if (!firstStart)
-		updateInfos(true);
 	//Touch handler
-	while (1) {
-		if (!firstStart)
-			updateInfos(false);
+	while (true) {
 		//touch press
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
@@ -255,19 +395,15 @@ void monthMenu(bool firstStart) {
 
 /* Year Menu */
 void yearMenu(bool firstStart) {
-	drawTitle((char*) "Year");
+	drawTitle((char*) "Year", firstStart);
 	touchButtons.deleteAllButtons();
 	touchButtons.addButton(20, 60, 70, 70, (char*) "-");
 	touchButtons.addButton(230, 60, 70, 70, (char*) "+");
 	touchButtons.addButton(20, 150, 280, 70, (char*) "Back");
 	touchButtons.drawButtons();
 	drawCenterElement(year());
-	if (!firstStart)
-		updateInfos(true);
 	//Touch handler
-	while (1) {
-		if (!firstStart)
-			updateInfos(false);
+	while (true) {
 		//touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
@@ -299,22 +435,18 @@ void yearMenu(bool firstStart) {
 
 /* Date Menu */
 void dateMenu(bool firstStart) {
-	drawTitle((char*) "Date");
+	drawTitle((char*) "Date", firstStart);
 	touchButtons.deleteAllButtons();
 	touchButtons.addButton(20, 60, 130, 70, (char*) "Day");
 	touchButtons.addButton(170, 60, 130, 70, (char*) "Month");
 	touchButtons.addButton(20, 150, 130, 70, (char*) "Year");
 	touchButtons.addButton(170, 150, 130, 70, (char*) "Back");
 	touchButtons.drawButtons();
-	if (!firstStart)
-		updateInfos(true);
 }
 
 /* Date Menu Handler */
 void dateMenuHandler(bool firstStart) {
-	while (1) {
-		if (!firstStart)
-			updateInfos(false);
+	while (true) {
 		//touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons();
@@ -341,22 +473,18 @@ void dateMenuHandler(bool firstStart) {
 
 /* Time Menu */
 void timeMenu(bool firstStart) {
-	drawTitle((char*) "Time");
+	drawTitle((char*) "Time", firstStart);
 	touchButtons.deleteAllButtons();
 	touchButtons.addButton(20, 60, 130, 70, (char*) "Hour");
 	touchButtons.addButton(170, 60, 130, 70, (char*) "Minute");
 	touchButtons.addButton(20, 150, 130, 70, (char*) "Second");
 	touchButtons.addButton(170, 150, 130, 70, (char*) "Back");
 	touchButtons.drawButtons();
-	if (!firstStart)
-		updateInfos(true);
 }
 
 /* Time Menu Handler */
 void timeMenuHandler(bool firstStart = false) {
-	while (1) {
-		if (!firstStart)
-			updateInfos(false);
+	while (true) {
 		//touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons();
@@ -383,7 +511,7 @@ void timeMenuHandler(bool firstStart = false) {
 
 /* Time & Date Menu */
 void timeAndDateMenu(bool firstStart) {
-	drawTitle((char*) "Time & Date");
+	drawTitle((char*) "Time & Date", firstStart);
 	touchButtons.deleteAllButtons();
 	touchButtons.addButton(20, 60, 130, 70, (char*) "Time");
 	touchButtons.addButton(170, 60, 130, 70, (char*) "Date");
@@ -391,15 +519,11 @@ void timeAndDateMenu(bool firstStart) {
 	if (firstStart)
 		touchButtons.relabelButton(2, (char*) "Set", false);
 	touchButtons.drawButtons();
-	if (!firstStart)
-		updateInfos(true);
 }
 
 /* Time & Date Menu Handler */
 void timeAndDateMenuHandler(bool firstStart = false) {
-	while (1) {
-		if (!firstStart)
-			updateInfos(false);
+	while (true) {
 		//touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons();
@@ -437,38 +561,38 @@ void timeAndDateMenuHandler(bool firstStart = false) {
 
 /* Visual image selection menu */
 void visualImageMenu(bool firstStart = false) {
-	drawTitle((char*) "Visual image");
+	drawTitle((char*) "Visual image", firstStart);
 	touchButtons.deleteAllButtons();
-	touchButtons.addButton(20, 60, 130, 70, (char*) "Enabled");
-	touchButtons.addButton(170, 60, 130, 70, (char*) "Disabled");
-	touchButtons.addButton(20, 150, 280, 70, (char*) "Back");
-	if (firstStart)
-		touchButtons.relabelButton(2, (char*) "Set", false);
+	touchButtons.addButton(20, 60, 130, 70, (char*) "Disabled");
+	touchButtons.addButton(170, 60, 130, 70, (char*) "Save JPEG");
+	if (firstStart) {
+		touchButtons.addButton(20, 150, 280, 70, (char*) "Set");
+		visualEnabled = true;
+	}
+	else
+		touchButtons.addButton(20, 150, 280, 70, (char*) "Back");
 	touchButtons.drawButtons();
-	if (visualEnabled)
+	if (!visualEnabled)
 		touchButtons.setActive(0);
 	else
 		touchButtons.setActive(1);
-	if (!firstStart)
-		updateInfos(true);
-	while (1) {
-		if (!firstStart)
-			updateInfos(false);
+	//Touch handler
+	while (true) {
 		//touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons();
-			//Enabled
+			//Disabled
 			if (pressedButton == 0) {
-				if (!visualEnabled) {
-					visualEnabled = true;
+				if (visualEnabled) {
+					visualEnabled = false;
 					touchButtons.setActive(0);
 					touchButtons.setInactive(1);
 				}
 			}
-			//Disabled
+			//Save JPEG
 			else if (pressedButton == 1) {
-				if (visualEnabled) {
-					visualEnabled = false;
+				if (!visualEnabled) {
+					visualEnabled = true;
 					touchButtons.setActive(1);
 					touchButtons.setInactive(0);
 				}
@@ -490,42 +614,44 @@ void visualImageMenu(bool firstStart = false) {
 
 /* Convert image selection menu */
 void convertImageMenu(bool firstStart = false) {
-	drawTitle((char*) "Convert image");
+	drawTitle((char*) "Convert image", firstStart);
 	touchButtons.deleteAllButtons();
-	touchButtons.addButton(20, 60, 130, 70, (char*) "Enabled");
-	touchButtons.addButton(170, 60, 130, 70, (char*) "Disabled");
-	touchButtons.addButton(20, 150, 280, 70, (char*) "Back");
-	if (firstStart)
-		touchButtons.relabelButton(2, (char*) "Set", false);
+	touchButtons.addButton(20, 60, 130, 70, (char*) "DAT only");
+	touchButtons.addButton(170, 60, 130, 70, (char*) "BMP & DAT");
+	if (firstStart) {
+		touchButtons.addButton(20, 150, 280, 70, (char*) "Set");
+		convertEnabled = true;
+	}
+	else
+		touchButtons.addButton(20, 150, 280, 70, (char*) "Back");
 	touchButtons.drawButtons();
-	if (convertEnabled)
+	if (!convertEnabled)
 		touchButtons.setActive(0);
 	else
 		touchButtons.setActive(1);
-	if (!firstStart)
-		updateInfos(true);
-	while (1) {
-		if (!firstStart)
-			updateInfos(false);
+
+	//Touch handler
+	while (true) {
 		//touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons();
-			//Yes
+			//DAT only
 			if (pressedButton == 0) {
-				if (!convertEnabled) {
-					convertEnabled = true;
+				if (convertEnabled) {
+					convertEnabled = false;
 					touchButtons.setActive(0);
 					touchButtons.setInactive(1);
 				}
 			}
-			//No
+			//BMP & DAT
 			else if (pressedButton == 1) {
-				if (convertEnabled) {
-					convertEnabled = false;
+				if (!convertEnabled) {
+					convertEnabled = true;
 					touchButtons.setActive(1);
 					touchButtons.setInactive(0);
 				}
 			}
+
 			//Save
 			else if (pressedButton == 2) {
 				//Write new settings to EEPROM
@@ -544,7 +670,7 @@ void convertImageMenu(bool firstStart = false) {
 /* Asks the user if he really wants to format */
 void formatStorage() {
 	//Old HW generation, check SD card
-	if (mlx90614Version == mlx90614Version_old){
+	if (mlx90614Version == mlx90614Version_old) {
 		drawMessage((char*) "Checking SD card..");
 		if (!checkSDCard()) {
 			storageMenu();
@@ -566,10 +692,8 @@ void formatStorage() {
 	touchButtons.addButton(165, 160, 140, 55, (char*) "Yes");
 	touchButtons.drawButtons();
 	touchButtons.setTextFont(smallFont);
-	updateInfos(true);
 	//Touch handler
 	while (true) {
-		updateInfos(false);
 		//If touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
@@ -594,8 +718,7 @@ void formatStorage() {
 
 /* Storage menu handler*/
 void storageMenuHandler() {
-	while (1) {
-		updateInfos(false);
+	while (true) {
 		//touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons();
@@ -629,29 +752,26 @@ void storageMenu() {
 	touchButtons.addButton(20, 150, 130, 70, (char*) "Format");
 	touchButtons.addButton(170, 150, 130, 70, (char*) "Back");
 	touchButtons.drawButtons();
-	updateInfos(true);
-
 }
 
 /* Temperature format menu */
 void tempFormatMenu(bool firstStart = false) {
-	drawTitle((char*) "Temp. Format");
+	drawTitle((char*) "Temp. Format", firstStart);
 	touchButtons.deleteAllButtons();
 	touchButtons.addButton(20, 60, 130, 70, (char*) "Celcius");
 	touchButtons.addButton(170, 60, 130, 70, (char*) "Fahrenheit");
 	touchButtons.addButton(20, 150, 280, 70, (char*) "Save");
-	if (firstStart)
+	if (firstStart) {
 		touchButtons.relabelButton(2, (char*) "Set", false);
+		tempFormat = tempFormat_celcius;
+	}
 	touchButtons.drawButtons();
 	if (tempFormat == tempFormat_celcius)
 		touchButtons.setActive(tempFormat_celcius);
 	else
 		touchButtons.setActive(tempFormat_fahrenheit);
-	if (!firstStart)
-		updateInfos(true);
-	while (1) {
-		if (!firstStart)
-			updateInfos(false);
+	//Touch handler
+	while (true) {
 		//touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons();
@@ -688,7 +808,7 @@ void tempFormatMenu(bool firstStart = false) {
 
 /* Rotate display menu */
 void rotateDisplayMenu(bool firstStart = false) {
-	drawTitle((char*) "Disp. rotation");
+	drawTitle((char*) "Disp. rotation", firstStart);
 	touchButtons.deleteAllButtons();
 	touchButtons.addButton(20, 60, 130, 70, (char*) "Enabled");
 	touchButtons.addButton(170, 60, 130, 70, (char*) "Disabled");
@@ -700,11 +820,8 @@ void rotateDisplayMenu(bool firstStart = false) {
 		touchButtons.setActive(0);
 	else
 		touchButtons.setActive(1);
-	if (!firstStart)
-		updateInfos(true);
-	while (1) {
-		if (!firstStart)
-			updateInfos(false);
+	//Touch handler
+	while (true) {
 		//touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons();
@@ -740,117 +857,35 @@ void rotateDisplayMenu(bool firstStart = false) {
 	}
 }
 
-/* Helps to adjust the focus */
-void adjustCamFocus() {
-	String text[7];
-	//Hint screen for the live mode #1 
-	text[0] = "Adjust focus";
-	text[1] = "This wizard will help you";
-	text[2] = "to adjust the focus of your";
-	text[3] = "visual camera. Rotate the lense";
-	text[4] = "of the camera module, until";
-	text[5] = "the shown image is really sharp.";
-	text[6] = "Then touch the screen to continue.";
-	infoScreen(text);
-	//Set text color
-	display.setFont(smallFont);
-	display.setColor(VGA_WHITE);
-	display.setBackColor(VGA_TRANSPARENT);
-	//Show the camera image until touch
-	while (true) {
-		//Display visual img
-		createVisCombImg();
-		showImage();
-		//Show touch hint
-		display.print((char*)"Hold touch to continue", CENTER, 210);
-		//Abort if screen touched
-		if (touch.touched())
-			break;
-	}
-}
-
-/* Helps to adjust the alignment to the thermal image */
-void adjustCamAlignment() {
-	String text[7];
-	//Hint screen for the live mode #1 
-	text[0] = "Adjust alignment";
-	text[1] = "In the next step, you can";
-	text[2] = "check and improve the alignment";
-	text[3] = "of the visual to the thermal image.";
-	text[4] = "Use some of the beveled washers and";
-	text[5] = "put them between the Lepton module and";
-	text[6] = "PCB to adjust the vertical alignment.";
-	infoScreen(text);
-	//Wait until touch release
-	while (touch.touched());
-	//Show the combined image until touch
-	combinedDecomp = true;
-	//Change color scheme
-	colorMap = colorMap_rainbow;
-	colorElements = 256;
-	//Set text color
-	display.setFont(smallFont);
-	display.setColor(VGA_WHITE);
-	display.setBackColor(VGA_TRANSPARENT);
-	while (true) {
-		//Display combined img
-		createVisCombImg();
-		showImage();
-		//Show touch hint
-		display.print((char*)"Hold touch to continue", CENTER, 210);
-		//Abort if screen touched
-		if (touch.touched())
-			break;
-	}
-	combinedDecomp = false;
-}
-
-/* Helps to adjust the visual camera */
-void adjustCam() {
-	//Change camera resolution to 160x120
-	changeCamRes(VC0706_160x120);
-	//Adjust the focus
-	adjustCamFocus();
-	//Adjust the alignment
-	adjustCamAlignment();
-	//Restore camera resolution to 640x480
-	changeCamRes(VC0706_640x480);
-}
-
-/* Adjust the visual camera menu */
-void adjustVisualCamMenu() {
-	//Title & Background
-	drawTitle((char*) "Display");
-	display.setColor(VGA_WHITE);
-	display.setFont(smallFont);
-	display.setBackColor(127, 127, 127);
-	display.print((char*)"Do you want to adjust the camera?", CENTER, 66);
-	display.print((char*)"This wizard will help you to adjust", CENTER, 105);
-	display.print((char*)"the focus and the alignment.", CENTER, 125);
-	//Draw the buttons
+/* Screen timeout menu */
+void screenTimeoutMenu() {
+	drawTitle((char*) "Screen timeout");
 	touchButtons.deleteAllButtons();
-	touchButtons.setTextFont(bigFont);
-	touchButtons.addButton(15, 160, 140, 55, (char*) "No");
-	touchButtons.addButton(165, 160, 140, 55, (char*) "Yes");
+	touchButtons.addButton(20, 60, 130, 70, (char*) "Disabled");
+	touchButtons.addButton(170, 60, 130, 70, (char*) "10 Min.");
+	touchButtons.addButton(20, 150, 130, 70, (char*) "30 Min.");
+	touchButtons.addButton(170, 150, 130, 70, (char*) "Back");
 	touchButtons.drawButtons();
-	touchButtons.setTextFont(smallFont);
-	updateInfos(true);
+	//Set current one active
+	touchButtons.setActive(screenOffTime);
 	//Touch handler
 	while (true) {
-		updateInfos(false);
-		//If touch pressed
+		//Touch pressed
 		if (touch.touched() == true) {
-			int pressedButton = touchButtons.checkButtons(true);
-			//YES - Go to the adjust cam wizard
-			if (pressedButton == 1) {
-				adjustCam();
-				drawMessage((char*) "Adjust cam wizard completed!");
-				delay(1000);
-				displayMenu();
-				break;
+			int pressedButton = touchButtons.checkButtons();
+			//Set to new color
+			if ((pressedButton == 0) || (pressedButton == 1) || (pressedButton == 2)) {
+				touchButtons.setInactive(screenOffTime);
+				screenOffTime = pressedButton;
+				touchButtons.setActive(screenOffTime);
 			}
-			//NO - Go back to display menu
-			else if (pressedButton == 0) {
+			//Save
+			else if (pressedButton == 3) {
+				//Write new settings to EEPROM
+				EEPROM.write(eeprom_screenOffTime, screenOffTime);
+				//Init timer
+				initScreenOffTimer();
+				//Return to display menu
 				displayMenu();
 				break;
 			}
@@ -858,10 +893,10 @@ void adjustVisualCamMenu() {
 	}
 }
 
+
 /* Display menu handler*/
 void displayMenuHandler() {
-	while (1) {
-		updateInfos(false);
+	while (true) {
 		//touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons();
@@ -873,9 +908,9 @@ void displayMenuHandler() {
 			else if (pressedButton == 1) {
 				rotateDisplayMenu();
 			}
-			//Adjust camera
+			//Screen timeout
 			else if (pressedButton == 2) {
-				adjustVisualCamMenu();
+				screenTimeoutMenu();
 			}
 			//Back
 			else if (pressedButton == 3) {
@@ -892,17 +927,15 @@ void displayMenu() {
 	touchButtons.deleteAllButtons();
 	touchButtons.addButton(20, 60, 130, 70, (char*) "Temp. format");
 	touchButtons.addButton(170, 60, 130, 70, (char*) "Disp. rotation");
-	touchButtons.addButton(20, 150, 130, 70, (char*) "Adjust camera");
+	touchButtons.addButton(20, 150, 130, 70, (char*) "Screen timeout");
 	touchButtons.addButton(170, 150, 130, 70, (char*) "Back");
 	touchButtons.drawButtons();
-	updateInfos(true);
 
 }
 
 /* Touch handler for the settings menu */
 void settingsMenuHandler() {
 	while (1) {
-		updateInfos(false);
 		//touch press
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons();
@@ -922,12 +955,8 @@ void settingsMenuHandler() {
 				timeAndDateMenuHandler();
 			}
 			//Back
-			else if (pressedButton == 3) {
-				drawMessage((char*)"Settings have been saved !");
-				delay(500);
-				mainMenu();
+			else if (pressedButton == 3)
 				break;
-			}
 		}
 	}
 }
@@ -936,10 +965,10 @@ void settingsMenuHandler() {
 void settingsMenu() {
 	drawTitle((char*) "Settings");
 	touchButtons.deleteAllButtons();
+	touchButtons.setTextFont(smallFont);
 	touchButtons.addButton(20, 60, 130, 70, (char*) "Display");
 	touchButtons.addButton(170, 60, 130, 70, (char*) "Storage");
 	touchButtons.addButton(20, 150, 130, 70, (char*) "Time & Date");
 	touchButtons.addButton(170, 150, 130, 70, (char*) "Back");
 	touchButtons.drawButtons();
-	updateInfos(true);
 }

@@ -2,9 +2,17 @@
 * Load images and videos from the internal storage
 */
 
+/* Defines */
+#define lepton2_small 9621
+#define lepton2_big 10005
+#define lepton3_small 38421
+#define lepton3_big 38805
+#define bitmap 614466
+#define maxFiles 500
+
 /* Variables */
 
-//Storage for up to 500 images/videos
+//Storage for up to maxFiles images/videos
 uint16_t* yearStorage;
 byte* monthStorage;
 byte* dayStorage;
@@ -34,7 +42,7 @@ int imgCount = 0;
 
 /* Clear all previous data */
 void clearData() {
-	for (int i = 0; i < 500; i++) {
+	for (int i = 0; i < maxFiles; i++) {
 		yearStorage[i] = 0;
 		monthStorage[i] = 0;
 		dayStorage[i] = 0;
@@ -77,6 +85,39 @@ void displayRawData() {
 	display.writeScreen(image);
 }
 
+/* Loads a 640x480 BMP image from the SDCard and prints it on screen */
+void loadBMPImage(char* filename) {
+	//Help variables
+	byte low, high;
+	//Switch Clock to Alternative
+	startAltClockline();
+	// Open the file for reading
+	sdFile.open(filename, O_READ);
+
+	//Skip the 66 bytes BMP header
+	for (int i = 0; i < 66; i++)
+		sdFile.read();
+	//Repeat the procedure 4 times to fill all the buffers
+	for (int i = 3; i >= 0; i--) {
+		//Save those 20 lines to the SD card. Ascending to mirror vertically
+		for (int y = 119; y >= 0; y--) {
+			for (int x = 0; x < 640; x++) {
+				low = sdFile.read();
+				high = sdFile.read();
+				//Get the image color
+				image[(x / 2) + ((y / 2) * 320)] = (high << 8) | low;
+			}
+		}
+		//Draw on the screen
+		display.drawBitmap(0, i * 60, 320, 60, image);
+	}
+	
+	//Close data file
+	sdFile.close();
+	//Switch clock back
+	endAltClockline();
+}
+
 /* Loads raw data from the internal storage*/
 void loadRawData(char* filename, char* dirname) {
 	byte msb, lsb;
@@ -90,7 +131,7 @@ void loadRawData(char* filename, char* dirname) {
 	sdFile.open(filename, O_READ);
 
 	//For the Lepton2 sensor, read 4800 raw values
-	if ((sdFile.fileSize() == 9621) || (sdFile.fileSize() == 10005)) {
+	if ((sdFile.fileSize() == lepton2_small) || (sdFile.fileSize() == lepton2_big)) {
 		for (int line = 0; line < 60; line++) {
 			for (int column = 0; column < 80; column++) {
 				msb = sdFile.read();
@@ -105,7 +146,7 @@ void loadRawData(char* filename, char* dirname) {
 		leptonVersion = leptonVersion_2_Shutter;
 	}
 	//For the Lepton3 sensor, read 19200 raw values
-	else if ((sdFile.fileSize() == 38421) || (sdFile.fileSize() == 38805)) {
+	else if ((sdFile.fileSize() == lepton3_small) || (sdFile.fileSize() == lepton3_big)) {
 		for (int i = 0; i < 19200; i++) {
 			msb = sdFile.read();
 			lsb = sdFile.read();
@@ -158,7 +199,7 @@ void loadRawData(char* filename, char* dirname) {
 
 	//Read temperature points
 	clearTemperatures();
-	if ((sdFile.fileSize() == 38805) || (sdFile.fileSize() == 10005)) {
+	if ((sdFile.fileSize() == lepton3_big) || (sdFile.fileSize() == lepton2_big)) {
 		for (int i = 0; i < 192; i++) {
 			//Read Min
 			msb = sdFile.read();
@@ -169,7 +210,7 @@ void loadRawData(char* filename, char* dirname) {
 
 	//Close data file
 	sdFile.close();
-	//Draw thermal image on screen
+	//Switch clock back
 	endAltClockline();
 }
 
@@ -177,10 +218,23 @@ void loadRawData(char* filename, char* dirname) {
 void openImage(char* filename, byte* choice) {
 	//Show message on screen
 	drawMessage((char*) "Please wait, image is loading..");	
-	//Load Raw data
-	loadRawData(filename);
-	//Display Raw Data
-	displayRawData();
+	//Display raw data
+	if (filename[15] == 'D') {
+		//Load Raw data
+		loadRawData(filename);
+		//Display Raw Data
+		displayRawData();
+	}
+	//Load bitmap
+	else if (filename[15] == 'B') {
+		loadBMPImage(filename);
+	}
+	//Unsupported file type
+	else {
+		drawMessage((char*) "Unsupported file type!");
+		delay(1000);
+		return;
+	}
 	//Create string for time and date
 	char nameStr[20] = { 
 		//Day
@@ -550,54 +604,100 @@ bool isImage(char* filename) {
 	return isImg;
 }
 
+/* Extract the filename into the buffers */
+void copyIntoBuffers(char* filename) {
+	//Save filename into the buffer
+	sdFile.getName(filename, 19);
+	//Extract the time and date components into extra buffer
+	strncpy(yearBuf, &filename[0], 4);
+	strncpy(monthBuf, &filename[4], 2);
+	strncpy(dayBuf, &filename[6], 2);
+	strncpy(hourBuf, &filename[8], 2);
+	strncpy(minuteBuf, &filename[10], 2);
+	strncpy(secondBuf, &filename[12], 2);
+}
+
+/* Check if the file is a valid one */
+bool checkFileValidity() {
+	return (sdFile.isDir()
+		|| (sdFile.isFile() && ((sdFile.fileSize() == lepton2_small) || (sdFile.fileSize() == lepton2_big) ||
+		(sdFile.fileSize() == lepton3_small) || (sdFile.fileSize() == lepton3_big) || (sdFile.fileSize() == bitmap))));
+}
+
+/* Check if the name matches the criterion */
+void checkFileStructure(bool* check) {
+	//Check if yearStorage is 4 digit
+	for (int i = 0; i < 4; i++) {
+		if (!(isdigit(yearBuf[i])))
+			*check = false;
+	}
+	//Check if the other elements are two digits each
+	for (int i = 0; i < 2; i++) {
+		if (!(isdigit(monthBuf[i])))
+			*check = false;
+		if (!(isdigit(dayBuf[i])))
+			*check = false;
+		if (!(isdigit(hourBuf[i])))
+			*check = false;
+		if (!(isdigit(minuteBuf[i])))
+			*check = false;
+		if (!(isdigit(secondBuf[i])))
+			*check = false;
+	}
+}
+
+/* Check if the filename ends with .DAT or .BMP if the file is a single image */
+void checkFileEnding(bool* check, char* filename) {
+	if (sdFile.isFile()) {
+		char ending_dat[] = ".DAT";
+		//Check for DAT first
+		if (((filename[14] != ending_dat[0]) || (filename[15] != ending_dat[1])
+			|| (filename[16] != ending_dat[2])
+			|| (filename[17] != ending_dat[3]))) {
+
+			//If it is not DAT, it could be BMP
+			char ending_bmp[] = ".BMP";
+			if ((filename[14] != ending_bmp[0]) || (filename[15] != ending_bmp[1])
+				|| (filename[16] != ending_bmp[2])
+				|| (filename[17] != ending_bmp[3]))
+				//None of both
+				*check = false;
+
+			//If bitmap, check if the file has a corresponding DAT
+			else {
+				strcpy(&filename[14], ".DAT");
+				sdFile.close();
+				//Check if it is a file
+				sdFile.open(filename, O_READ);				
+				if (sdFile.isFile())
+					*check = false;
+				//Open the old file
+				strcpy(&filename[14], ".BMP");
+				sdFile.close();
+				sdFile.open(filename, O_READ);
+			}
+		}
+	}
+}
+
 /* Find the next or previous file/folder on the SD card or the position */
 bool findFile(char* filename, bool next, bool restart, int* position = 0, char* compare = NULL) {
 	bool found = false;
 	int counter = 0;
 	//Start SD Transmission
 	startAltClockline(restart);
-	//Get filenames from SD Card - one after another and a maximum of 500
+	//Get filenames from SD Card - one after another and a maximum of maxFiles
 	while (sdFile.openNext(sd.vwd(), O_READ)) {
 		//Either folder for video or file with specific size for single image
-		if (sdFile.isDir()
-			|| (sdFile.isFile() && ((sdFile.fileSize() == 9621) || (sdFile.fileSize() == 10005) || (sdFile.fileSize() == 38421) || (sdFile.fileSize() == 38805)))) {
-			//Save filename into the buffer
-			sdFile.getName(filename, 19);
-			//Extract the time and date components into extra buffer
-			strncpy(yearBuf, &filename[0], 4);
-			strncpy(monthBuf, &filename[4], 2);
-			strncpy(dayBuf, &filename[6], 2);
-			strncpy(hourBuf, &filename[8], 2);
-			strncpy(minuteBuf, &filename[10], 2);
-			strncpy(secondBuf, &filename[12], 2);
+		if (checkFileValidity()) {
+			//Extract the filename into the buffers
+			copyIntoBuffers(filename);
 			//Check if the name matches the criterion
 			bool check = true;
-			//Check if yearStorage is 4 digit
-			for (int i = 0; i < 4; i++) {
-				if (!(isdigit(yearBuf[i])))
-					check = false;
-			}
 			//Check if the other elements are two digits each
-			for (int i = 0; i < 2; i++) {
-				if (!(isdigit(monthBuf[i])))
-					check = false;
-				if (!(isdigit(dayBuf[i])))
-					check = false;
-				if (!(isdigit(hourBuf[i])))
-					check = false;
-				if (!(isdigit(minuteBuf[i])))
-					check = false;
-				if (!(isdigit(secondBuf[i])))
-					check = false;
-			}
-			//Check if the filename ends with .DAT if the file is a single image
-			if (sdFile.isFile()) {
-				char ending[] = ".DAT";
-				if ((filename[14] != ending[0]) || (filename[15] != ending[1])
-					|| (filename[16] != ending[2])
-					|| (filename[17] != ending[3]))
-					check = false;
-			}
+			checkFileStructure(&check);
+			//Check if the filename ends with .DAT or .BMP if the file is a single image
+			checkFileEnding(&check, filename);
 			//If all checks were successfull, add image to the results
 			if (check) {
 				//If we want to get the next image
@@ -641,52 +741,22 @@ void searchFiles() {
 	char filename[20];
 	//Start SD Transmission
 	startAltClockline(true);
-	//Get filenames from SD Card - one after another and a maximum of 500
-	while (imgCount < 500 && sdFile.openNext(sd.vwd(), O_READ)) {
+	//Get filenames from SD Card - one after another and a maximum of maxFiles
+	while (imgCount < maxFiles && sdFile.openNext(sd.vwd(), O_READ)) {
 		//Either folder for video or file with specific size for single image
-		if (sdFile.isDir()
-			|| (sdFile.isFile() && ((sdFile.fileSize() == 9621) || (sdFile.fileSize() == 10005) || (sdFile.fileSize() == 38421) || (sdFile.fileSize() == 38805)))) {
-			//Save filename into the buffer
-			sdFile.getName(filename, 19);
-			//Extract the time and date components into extra buffer
-			strncpy(yearBuf, &filename[0], 4);
-			strncpy(monthBuf, &filename[4], 2);
-			strncpy(dayBuf, &filename[6], 2);
-			strncpy(hourBuf, &filename[8], 2);
-			strncpy(minuteBuf, &filename[10], 2);
-			strncpy(secondBuf, &filename[12], 2);
+		if (checkFileValidity()) {
+			//Extract the filename into the buffers
+			copyIntoBuffers(filename);
 			//Check if the name matches the criterion
 			bool check = true;
-			//Check if yearStorage is 4 digit
-			for (int i = 0; i < 4; i++) {
-				if (!(isdigit(yearBuf[i])))
-					check = false;
-			}
 			//Check if the other elements are two digits each
-			for (int i = 0; i < 2; i++) {
-				if (!(isdigit(monthBuf[i])))
-					check = false;
-				if (!(isdigit(dayBuf[i])))
-					check = false;
-				if (!(isdigit(hourBuf[i])))
-					check = false;
-				if (!(isdigit(minuteBuf[i])))
-					check = false;
-				if (!(isdigit(secondBuf[i])))
-					check = false;
-			}
-			//Check if the filename ends with .DAT if the file is a single image
-			if (sdFile.isFile()) {
-				char ending[] = ".DAT";
-				if ((filename[14] != ending[0]) || (filename[15] != ending[1])
-					|| (filename[16] != ending[2])
-					|| (filename[17] != ending[3]))
-					check = false;
-			}
+			checkFileStructure(&check);
+			//Check if the filename ends with .DAT or .BMP if the file is a single image
+			checkFileEnding(&check, filename);
 			//If all checks were successfull, add image to the results
 			if (check) {
 				//If the size of images is not too high
-				if (imgCount < 500) {
+				if (imgCount < maxFiles) {
 					yearStorage[imgCount] = atoi(yearBuf);
 					monthStorage[imgCount] = atoi(monthBuf);
 					dayStorage[imgCount] = atoi(dayBuf);
@@ -696,11 +766,11 @@ void searchFiles() {
 					//And raise imgCount by one
 					imgCount++;
 				}
-				//If there are 500 images or more
+				//If there are maxFiles images or more
 				else {
 					endAltClockline();
 					//Display an error message
-					drawMessage((char*) "Only 500 images/videos allowed !");
+					drawMessage((char*) "Maximum number of files exceeded!");
 					delay(1000);
 					//And return to the main menu
 					mainMenu();
@@ -819,16 +889,25 @@ MinuteLabel:
 	}
 	//Add the ending
 	strcpy(&filename[14], ".DAT");
+	//Check if it is a DAT file
+	sdFile.open(filename, O_READ);
+	if (sdFile.isFile()) {
+		sdFile.close();
+		return;
+	}
+	//If not, use bitmap
+	strcpy(&filename[14], ".BMP");
+	sdFile.close();
 }
 
 /* Alloc space for the different arrays*/
 void loadAlloc() {
-	yearStorage = (uint16_t*)calloc(500, sizeof(uint16_t));
-	monthStorage = (byte*)calloc(500, sizeof(byte));
-	dayStorage = (byte*)calloc(500, sizeof(byte));
-	hourStorage = (byte*)calloc(500, sizeof(byte));
-	minuteStorage = (byte*)calloc(500, sizeof(byte));
-	secondStorage = (byte*)calloc(500, sizeof(byte));
+	yearStorage = (uint16_t*)calloc(maxFiles, sizeof(uint16_t));
+	monthStorage = (byte*)calloc(maxFiles, sizeof(byte));
+	dayStorage = (byte*)calloc(maxFiles, sizeof(byte));
+	hourStorage = (byte*)calloc(maxFiles, sizeof(byte));
+	minuteStorage = (byte*)calloc(maxFiles, sizeof(byte));
+	secondStorage = (byte*)calloc(maxFiles, sizeof(byte));
 }
 
 /* De-Alloc space for the different arrays*/
@@ -961,6 +1040,8 @@ void loadThermal() {
 				break;
 		}
 	}
+	//Display message
+	drawMessage((char*)"Returning to live mode..");
 	//Deallocate space
 	loadDeAlloc();
 	//Restore old settings from variables
@@ -972,6 +1053,4 @@ void loadThermal() {
 	calSlope = old_calSlope;
 	//Restore the rest from EEPROM
 	readEEPROM();
-	//Return to the main menu
-	mainMenu();
 }

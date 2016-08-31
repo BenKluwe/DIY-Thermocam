@@ -81,12 +81,12 @@ void showColorBar() {
 			green = colorMap[(i * 3) + 1];
 			blue = colorMap[(i * 3) + 2];
 			display.setColor(red, green, blue);
-			display.drawLine(142, height - count, 157, height - count);
+			display.drawLine(149, height - count, 157, height - count);
 			count++;
 		}
 	}
-	//Switch color back
-	display.setColor(VGA_WHITE);
+	//Set text color
+	setTextColor();
 	//Calculate min and max temp in celcius/fahrenheit
 	float min = calFunction(minTemp);
 	float max = calFunction(maxTemp);
@@ -94,16 +94,16 @@ void showColorBar() {
 	float step = (max - min) / 3.0;
 	//Draw min temp
 	sprintf(buffer, "%d", (int)round(min));
-	display.print(buffer, 262, (height * 2) - 5);
+	display.print(buffer, 270, (height * 2) - 5);
 	//Draw temperatures after min before max
 	for (int i = 2; i >= 1; i--) {
 		float temp = min + (i*step);
 		sprintf(buffer, "%d", (int)round(temp));
-		display.print(buffer, 262, (height * 2) - 5 - (i * (colorElements / 6)));
+		display.print(buffer, 270, (height * 2) - 5 - (i * (colorElements / 6)));
 	}
 	//Draw max temp
 	sprintf(buffer, "%d", (int)round(max));
-	display.print(buffer, 262, (height * 2) - 5 - (3 * (colorElements / 6)));
+	display.print(buffer, 270, (height * 2) - 5 - (3 * (colorElements / 6)));
 }
 
 /* Show the current object temperature on screen*/
@@ -272,6 +272,32 @@ void changeDisplayOptions(byte* pos) {
 			filterType = filterType_box;
 		EEPROM.write(eeprom_filterType, filterType);
 		break;
+		//Text color
+	case 8:
+		if (textColor == textColor_white)
+			textColor = textColor_black;
+		else if (textColor == textColor_black)
+			textColor = textColor_red;
+		else if (textColor == textColor_red)
+			textColor = textColor_green;
+		else if (textColor == textColor_green)
+			textColor = textColor_blue;
+		else
+			textColor = textColor_white;
+		EEPROM.write(eeprom_textColor, textColor);
+		break;
+		//Hottest or coldest display
+	case 9:
+		if (minMaxPoints == minMaxPoints_none)
+			minMaxPoints = minMaxPoints_min;
+		else if (minMaxPoints == minMaxPoints_min)
+			minMaxPoints = minMaxPoints_max;
+		else if (minMaxPoints == minMaxPoints_max)
+			minMaxPoints = minMaxPoints_both;
+		else
+			minMaxPoints = minMaxPoints_none;
+		EEPROM.write(eeprom_minMaxPoints, minMaxPoints);
+		break;
 	}
 }
 
@@ -322,8 +348,9 @@ void showImage() {
 
 /* Display addition information on the screen */
 void displayInfos() {
-	//Set text color, font and background
-	display.setColor(VGA_WHITE);
+	//Set text color
+	setTextColor();
+	//Set font and background
 	display.setBackColor(VGA_TRANSPARENT);
 	display.setFont(tinyFont);
 
@@ -360,6 +387,11 @@ void displayInfos() {
 	//Show the temperature points
 	if (pointsEnabled)
 		showTemperatures();
+	//Show the minimum / maximum points
+	if (minMaxPoints & minMaxPoints_min)
+		displayMinMaxPoint(minTempPos, (const char *)"C");
+	if (minMaxPoints & minMaxPoints_max)
+		displayMinMaxPoint(maxTempPos, (const char *)"H");
 	//Set write back to display
 	display.writeToImage = false;
 }
@@ -402,18 +434,6 @@ void liveModeInit() {
 	clearTemperatures();
 }
 
-
-/* Exit the live mode */
-void liveModeExit() {
-	//Deactivate laser if enabled
-	if (laserEnabled)
-		digitalWrite(pin_laser, LOW);
-	//Detach the interrupts
-	detachInterrupts();
-	//Open the main menu
-	mainMenu();
-}
-
 /* Main entry point for the live mode */
 void liveMode() {
 	//Init
@@ -423,11 +443,12 @@ void liveMode() {
 		//Check for serial connection
 		checkSerial();
 
+		//Check for screen sleep
+		screenOffCheck();
+
 		//If touch IRQ has been triggered, open menu
-		if (showMenu) {
-			if (liveMenu())
-				break;
-		}
+		if (showMenu)
+			mainMenu();
 
 		//Check if the save message needs to be shown
 		if (imgSave == imgSave_set) {
@@ -440,7 +461,7 @@ void liveMode() {
 				showSaveMessage();
 			}
 		}
-			
+
 		//Create thermal image
 		if (displayMode == displayMode_thermal)
 			createThermalImg();
@@ -453,7 +474,7 @@ void liveMode() {
 			displayInfos();
 
 		//Show the content on the screen
-			showImage();
+		showImage();
 
 		//Save the converted / visual image
 		if (imgSave == imgSave_save)
@@ -469,6 +490,4 @@ void liveMode() {
 		if (lockLimits)
 			limitLock();
 	}
-	//Exit
-	liveModeExit();
 }

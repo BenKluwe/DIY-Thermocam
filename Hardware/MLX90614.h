@@ -226,6 +226,7 @@ void mlx90614SetFilter() {
 		MSB = 0x70;
 		LSB = 0x9F;
 	}
+	
 	//New MLX90614 with gain factor of 100
 	else if (mlx90614Version == mlx90614Version_new) {
 		filterSettings = 46960;

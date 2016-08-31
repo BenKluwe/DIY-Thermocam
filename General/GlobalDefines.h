@@ -46,27 +46,58 @@
 #define filterType_gaussian 1
 #define filterType_box 2
 
+//Display Min/Max Points
+#define minMaxPoints_none 0
+#define minMaxPoints_min 1
+#define minMaxPoints_max 2
+#define minMaxPoints_both 3
+
 //Shutter mode
 #define shutterMode_manual 0
 #define shutterMode_auto 1
 #define shutterMode_none 2
+
+//Text color
+#define textColor_white 0
+#define textColor_black 1
+#define textColor_red 2
+#define textColor_green 3
+#define textColor_blue 4
+
+//Screen off time
+#define screenOffTime_disabled 0
+#define screenOffTime_10min 1
+#define screenOffTime_30min 2
 
 //EEPROM registers
 #define eeprom_tempFormat 101
 #define eeprom_colorScheme 102
 #define eeprom_convertEnabled 103
 #define eeprom_visualEnabled 104
-#define eeprom_massStorage 107
-#define eeprom_spotEnabled 108
-#define eeprom_filterType 109
-#define eeprom_colorbarEnabled 110
-#define eeprom_batteryEnabled 111
-#define eeprom_timeEnabled 112
-#define eeprom_dateEnabled 113
-#define eeprom_pointsEnabled 114
-#define eeprom_storageEnabled 115
-#define eeprom_rotationEnabled 116
-#define eeprom_displayMode 117
+#define eeprom_spotEnabled 105
+#define eeprom_colorbarEnabled 106
+#define eeprom_batteryEnabled 107
+#define eeprom_timeEnabled 108
+#define eeprom_dateEnabled 109
+#define eeprom_pointsEnabled 110
+#define eeprom_storageEnabled 111
+#define eeprom_rotationEnabled 112
+#define eeprom_displayMode 113
+#define eeprom_textColor 114
+#define eeprom_filterType 115
+#define eeprom_minTempLow 116
+#define eeprom_minTempHigh 117
+#define eeprom_maxTempLow 118
+#define eeprom_maxTempHigh 119
+#define eeprom_minMaxSet 120
+#define eeprom_adjCombLeft 121
+#define eeprom_adjCombRight 122
+#define eeprom_adjCombUp 123
+#define eeprom_adjCombDown 124
+#define eeprom_adjCombFactor 125
+#define eeprom_adjCombSet 126
+#define eeprom_minMaxPoints 127
+#define eeprom_screenOffTime 128
 #define eeprom_calSlopeSet 130
 #define eeprom_calSlopeBase 131 //4 Byte (131-134)
 #define eeprom_firstStart 150

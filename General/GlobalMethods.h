@@ -2,7 +2,8 @@
 * Global method definitions, that are used firmware-wide
 */
 
-void drawMessage(char*);
+void adjustCombinedMenu(bool firstStart = false);
+void drawMessage(char*, bool small = false);
 void firstStart();
 void startAltClockline(bool sdStart = false);
 void endAltClockline();
@@ -72,4 +73,4 @@ void showImage();
 void compensateCalib();
 void checkImageSave();
 void createSDName(char* filename, bool folder = false);
-void toggleLaser();
+void toggleLaser(bool message = false);

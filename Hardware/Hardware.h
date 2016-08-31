@@ -19,15 +19,77 @@ time_t getTeensy3Time()
 	return Teensy3Clock.get();
 }
 
+/* Toggle the display*/
+void toggleDisplay() {
+	drawMessage((char*) "Screen goes off, touch to continue!", true);
+	delay(1000);
+	disableScreenLight();
+	//Wait for touch press
+	while (!touch.touched());
+	//Turning screen on
+	drawMessage((char*) "Turning screen on..", true);
+	enableScreenLight();
+	delay(1000);
+}
+
+/* Check if the screen was pressed in the time period */
+bool screenOffCheck() {
+	//Timer exceeded
+	if ((screenOff.check()) && (screenOffTime != screenOffTime_disabled)) {
+		//No touch press in the last interval
+		if (screenPressed == false) {
+			detachInterrupts();
+			toggleDisplay();
+			attachInterrupts();
+			screenOff.reset();
+			return true;
+		}
+		//Touch pressed, restart timer
+		else {
+			screenPressed = false;
+			screenOff.reset();
+			return false;
+		}		
+	}
+	return false;
+}
+
+/* Init the screen off timer */
+void initScreenOffTimer() {
+	byte read = EEPROM.read(eeprom_screenOffTime);
+	//Try to read from EEPROM
+	if ((read == screenOffTime_disabled) || (read == screenOffTime_10min) || read == screenOffTime_30min) {
+		screenOffTime = read;
+		//10 Minutes
+		if (screenOffTime == screenOffTime_10min)
+			screenOff.begin(600000, false);
+		//30 Minutes
+		else if (screenOffTime == screenOffTime_30min)
+			screenOff.begin(1800000, false);
+		//Disable marker
+		screenPressed = false;
+	}
+	else
+		screenOffTime = screenOffTime_disabled;
+}
+
 /* Switches the laser on or off*/
-void toggleLaser() {
+void toggleLaser(bool message) {
 	if (laserEnabled) {
 		digitalWrite(pin_laser, LOW);
 		laserEnabled = false;
+		if (message) {
+			drawMessage((char*) "Laser is now off!", true);
+			delay(1000);
+		}
 	}
 	else {
 		digitalWrite(pin_laser, HIGH);
 		laserEnabled = true;
+		if (message) {
+			drawMessage((char*) "Laser is now on!", true);
+			delay(1000);
+		}
 	}
 }
 
@@ -202,6 +264,23 @@ void printDiagnostic() {
 		Serial.println("Lepton data - Failed");
 }
 
+/* Loads the minimum and maximum temperature from EEPROM */
+void loadMinMaxTemp() {
+	int16_t min, max;
+	if (EEPROM.read(eeprom_minMaxSet) == eeprom_setValue) {
+		min = ((EEPROM.read(eeprom_minTempHigh) << 8) + EEPROM.read(eeprom_minTempLow));
+		max = ((EEPROM.read(eeprom_maxTempHigh) << 8) + EEPROM.read(eeprom_maxTempLow));
+		while (((int)round(calFunction(minTemp))) > (min))
+			minTemp--;
+		while (((int)round(calFunction(minTemp))) < (min))
+			minTemp++;
+		while (((int)round(calFunction(maxTemp))) > (max))
+			maxTemp--;
+		while (((int)round(calFunction(maxTemp))) < (max))
+			maxTemp++;
+	}
+}
+
 /* Checks if the sd card is inserted for Early Bird Hardware */
 bool checkSDCard() {
 	//Old hardware, begin SD transaction
@@ -243,25 +322,29 @@ void initDisplay() {
 	setDisplayRotation();
 	//Link display library to image array
 	display.imagePtr = image;
-	//If not returning from mass storage, check display
-	byte val = EEPROM.read(eeprom_massStorage);
-	if ((val != eeprom_massStorage) && (val != eeprom_setValue)) {
+	//Check status by writing test pixel red to 10/10
+	display.setXY(10, 10, 10, 10);
+	display.setPixel(VGA_RED);
+	uint16_t color = display.readPixel(10, 10);
+	//If failed
+	if (color != VGA_RED) {
+		//Try again after one second
+		delay(1000);
 		//Check status by writing test pixel red to 10/10
 		display.setXY(10, 10, 10, 10);
 		display.setPixel(VGA_RED);
 		uint16_t color = display.readPixel(10, 10);
+		//Failed again, set diagnostic
 		if (color != VGA_RED)
 			setDiagnostic(diag_display);
 	}
-	//Clear flag
-	if (val == eeprom_massStorage)
-		EEPROM.write(eeprom_massStorage, 0);
+		
 }
 
 /* Initializes the touch module and checks if it is working */
 void initTouch() {
 	//Init the touch
-	touch.begin();
+	touch.begin(&screenPressed);
 	//If not capacitive, check if working
 	if (!touch.capacitive) {
 		TS_Point point = touch.getPoint();
@@ -308,12 +391,16 @@ void checkFWUpgrade() {
 				EEPROM.write(i, 0);
 			//Show message and wait
 			drawMessage((char*)"FW update completed, pls restart!");
-			EEPROM.write(eeprom_fwVersion, fwVersion);
-			while (true);
 		}
 		//Upgrade
-		if (fwVersion > eepromVersion)
+		else if (fwVersion > eepromVersion) {
+			//Clear EEPROM if coming from a firmware version smaller than 2.00
+			if (eepromVersion < 200) {
+				for (unsigned int i = 0; i < EEPROM.length(); i++)
+					EEPROM.write(i, 0);
+			}
 			drawMessage((char*)"FW update completed, pls restart!");
+		}
 		//Downgrade
 		else
 			drawMessage((char*)"FW downgrade completed, pls restart!");
@@ -434,17 +521,39 @@ void readEEPROM() {
 		displayMode = read;
 	else
 		displayMode = displayMode_thermal;
+	//Text color
+	read = EEPROM.read(eeprom_textColor);
+	if ((read >= textColor_white) && (read <= textColor_blue) )
+		textColor = read;
+	else
+		textColor = textColor_white;
 	//Calibration slope
 	read = EEPROM.read(eeprom_calSlopeSet);
 	if (read == eeprom_setValue)
 		readCalibration();
 	else
 		calSlope = cal_stdSlope;
-	//Return from Mass Storage reboot, no warmup required
-	read = EEPROM.read(eeprom_massStorage);
+	//Min/Max Points
+	read = EEPROM.read(eeprom_minMaxPoints);
+	if ((read == minMaxPoints_none) || (read == minMaxPoints_min) || (read == minMaxPoints_max) || (read == minMaxPoints_both))
+		minMaxPoints = read;
+	else
+		minMaxPoints = minMaxPoints_none;
+	//Adjust combined
+	read = EEPROM.read(eeprom_adjCombSet);
 	if (read == eeprom_setValue) {
-		EEPROM.write(eeprom_massStorage, 0);
-		calStatus = cal_standard;
+		adjCombDown = EEPROM.read(eeprom_adjCombDown);
+		adjCombLeft = EEPROM.read(eeprom_adjCombLeft);
+		adjCombRight = EEPROM.read(eeprom_adjCombRight);
+		adjCombUp = EEPROM.read(eeprom_adjCombUp);
+		adjCombFactor = EEPROM.read(eeprom_adjCombFactor) / 100.0;
+	}
+	else {
+		adjCombDown = 0;
+		adjCombUp = 0;
+		adjCombLeft = 0;
+		adjCombRight = 0;
+		adjCombFactor = 1.0;
 	}
 }
 
@@ -478,6 +587,8 @@ void initHardware() {
 	mlx90614Init();
 	//Init SD card
 	initSD();
+	//Init screen off timer
+	initScreenOffTimer();
 	//Disable I2C timeout
 	Wire.setDefaultTimeout(0);
 }

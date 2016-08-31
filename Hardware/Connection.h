@@ -479,8 +479,10 @@ void serialConnect() {
 		toggleLaser();
 
 	//Switch back to auto shutter if manual used
-	if (shutterMode == shutterMode_manual)
+	if (shutterMode == shutterMode_manual) {
 		leptonSetShutterMode(true);
+		shutterMode = shutterMode_auto;
+	}
 
 	//Re-Enable interrupts
 	attachInterrupts();

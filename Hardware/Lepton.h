@@ -101,6 +101,55 @@ int leptonReadReg(byte reg) {
 	return reading;
 }
 
+/* Set the shutter operation to manual/auto */
+void leptonSetFFCMode(bool automatic)
+{
+	//Array for the package
+	byte package[64];
+	//Read command
+	Wire.beginTransmission(0x2A);
+	Wire.write(0x00);
+	Wire.write(0x04);
+	Wire.write(0x02);
+	Wire.write(0x3C);
+	Wire.endTransmission();
+	//Read old FFC package first
+	Wire.beginTransmission(0x2A);
+	while (leptonReadReg(0x2) & 0x01);
+	uint8_t length = leptonReadReg(0x6);
+	Wire.requestFrom((uint8_t) 0x2A, length);
+	
+	for (byte i = 0; i < length; i++)
+	{
+		package[i] = Wire.read();
+		Serial.println(package[i]);
+	}
+	//Alter the second bit to set FFC to manual
+	package[0] = automatic;
+	//Transmit the new package
+	Wire.beginTransmission(0x2A);
+	Wire.write(0x00);
+	Wire.write(0x08);
+	for (int i = 0; i < length; i++) {
+		Wire.write(package[i]);
+	}
+	Wire.endTransmission();
+	//Package length, use 4 here
+	Wire.beginTransmission(0x2A);
+	Wire.write(0x00);
+	Wire.write(0x06);
+	Wire.write(0x00);
+	Wire.write(0x04);
+	Wire.endTransmission();
+	//Module and command ID
+	Wire.beginTransmission(0x2A);
+	Wire.write(0x00);
+	Wire.write(0x04);
+	Wire.write(0x02);
+	Wire.write(0x3D);
+	Wire.endTransmission();
+}
+
 /* Checks the Lepton hardware revision */
 void leptonCheckVersion() {
 	//Get AGC Command
@@ -145,7 +194,8 @@ void leptonSetShutterMode(bool automatic)
 	if (shutterMode == shutterMode_none)
 		return;
 
-	//To-do: Implement set shutter mode over I2C
+	//Set the shutter mode on the Lepton
+	leptonSetFFCMode(automatic);
 
 	//Set shutter mode
 	if (automatic)
@@ -183,7 +233,7 @@ void leptonRadSet(bool enable)
 /* Check which hardware revision of the FLIR Lepton is connected */
 void initLepton() {
 	//Short delay
-	delay(1500);
+	delay(1000);
 
 	//Check the Lepton HW Revision
 	leptonCheckVersion();

@@ -4,7 +4,7 @@
 
 void displayGUI(int imgCount, char* infoText) {
 	//Set text color
-	display.setColor(VGA_WHITE);
+	setTextColor();
 	//set Background transparent
 	display.setBackColor(VGA_TRANSPARENT);
 	display.setFont(bigFont);
@@ -43,10 +43,8 @@ void deleteVideo(char* dirname) {
 	touchButtons.addButton(165, 160, 140, 55, (char*) "Yes");
 	touchButtons.drawButtons();
 	touchButtons.setTextFont(smallFont);
-	updateInfos(true);
 	//Touch handler
 	while (true) {
-		updateInfos(false);
 		//If touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
@@ -121,11 +119,9 @@ void deleteImage(char* filename) {
 	touchButtons.addButton(15, 160, 140, 55, (char*) "No");
 	touchButtons.addButton(165, 160, 140, 55, (char*) "Yes");
 	touchButtons.drawButtons();
-	touchButtons.setTextFont(smallFont);
-	updateInfos(true);
+	touchButtons.setTextFont(smallFont);;
 	//Touch handler
 	while (true) {
-		updateInfos(false);
 		//If touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
@@ -158,7 +154,7 @@ void deleteImage(char* filename) {
 }
 
 /* Asks the user if he really wants to convert the image/video */
-bool convertPrompt(bool infosHidden = false) {
+bool convertPrompt() {
 	//Title & Background
 	drawTitle((char*) "Conversion Prompt");
 	display.setColor(VGA_WHITE);
@@ -176,12 +172,8 @@ bool convertPrompt(bool infosHidden = false) {
 	touchButtons.setTextFont(smallFont);
 	//Wait for touch release
 	while (touch.touched());
-	if (!infosHidden)
-		updateInfos(true);
 	//Touch handler
 	while (true) {
-		if (!infosHidden)
-			updateInfos(false);
 		//If touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
@@ -337,10 +329,8 @@ int loadMenu(char* title, int* array, int length) {
 	int currentPos = 0;
 	//Display the first element for the array
 	drawCenterElement(array[currentPos]);
-	updateInfos(true);
-	while (1) {
-		//Update the additional information
-		updateInfos(false);
+	//Touch handler
+	while (true) {
 		//Touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons();

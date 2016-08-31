@@ -10,8 +10,8 @@ float celciusToFahrenheit(float Tc) {
 
 /* Function to calculate temperature out of Lepton value */
 float calFunction(uint16_t rawValue) {
-	//Calculate offset out of ambient temp when no calib is done
-	if (calStatus != cal_manual)
+	//Calculate offset out of ambient temp
+	if ((calStatus != cal_manual) && (agcEnabled) && (!limitsLocked))
 		calOffset = mlx90614Amb - (calSlope * 8192) + calComp;
 	//Calculate the temperature in Celcius out of the coefficients
 	float temp = (calSlope * rawValue) + calOffset;
@@ -47,20 +47,21 @@ void compensateCalib() {
 	//Convert to Fahrenheit if needed
 	if (tempFormat == tempFormat_fahrenheit)
 		mlx90614Temp = celciusToFahrenheit(mlx90614Temp);
+
 	//Apply compensation if AGC enabled, no limited locked and standard calib
-	if ((agcEnabled) && (!limitsLocked) && (calStatus == cal_standard)) {
+	if ((agcEnabled) && (!limitsLocked) && (calStatus != cal_warmup)) {
 		//Calculate min & max
-		float min = calFunction(minTemp);
-		float max = calFunction(maxTemp);
-		//If spot temp is lower than current minimum by 2 degree, lower minimum
+		int16_t min = round(calFunction(minTemp));
+		int16_t max = round(calFunction(maxTemp));
+		//If spot temp is lower than current minimum by one degree, lower minimum
 		if ((mlx90614Temp < (min - 1)) && (colorScheme != colorScheme_hottest))
 			calComp = mlx90614Temp - min;
-		//If spot temp is higher than current maximum by 2 degree, raise maximum
+		//If spot temp is higher than current maximum by one degree, raise maximum
 		else if ((mlx90614Temp > (max + 1)) && (colorScheme != colorScheme_coldest))
 			calComp = mlx90614Temp - max;
 	}
-	//Calculate offset out of ambient temp when no calib is done
-	if (calStatus != cal_standard)
+	//Calculate offset out of ambient temp
+	if ((calStatus != cal_manual) && (agcEnabled) && (!limitsLocked))
 		calOffset = mlx90614Amb - (calSlope * 8192) + calComp;
 }
 
@@ -71,12 +72,8 @@ void checkWarmup() {
 		//Perform FFC if shutter is attached
 		if (leptonVersion != leptonVersion_2_NoShutter)
 			leptonRunCalibration();
-		//Set calibration status to standard for new HW
-		if (mlx90614Version == mlx90614Version_new)
-			calStatus = cal_standard;
-		//Set calibration status to manual for old HW
-		else
-			calStatus = cal_manual;
+		//Set calibration status to standard
+		calStatus = cal_standard;
 	}
 }
 
@@ -199,7 +196,7 @@ void calibrationProcess(bool firstStart) {
 		if (calCorrelation < 0.5) {
 			//When in first start mode
 			if (firstStart) {
-				drawMessage((char*) "Bad calibration, try again!");
+				drawMessage((char*) "Bad calibration, try again!", true);
 				delay(1000);
 			}
 			//If the user does not want to repeat, discard
@@ -220,7 +217,7 @@ void calibrationProcess(bool firstStart) {
 	storeCalibration();
 	//Show message if not in first start menu
 	if (firstStart == false) {
-		drawMessage((char*) "Calibration written to EEPROM!");
+		drawMessage((char*) "Calibration written to EEPROM!", true);
 		delay(1000);
 	}
 	//Restore old font
@@ -231,7 +228,7 @@ void calibrationProcess(bool firstStart) {
 bool calibrate() {
 	//Still in warmup
 	if (calStatus == cal_warmup) {
-		drawMessage((char*) "Please wait for sensor warmup!");
+		drawMessage((char*) "Please wait for sensor warmup!", true);
 		delay(1500);
 		return false;
 	}
