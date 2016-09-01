@@ -201,21 +201,6 @@ void findMinMaxPositions()
 	}
 }
 
-/* Scale the values from 0 - 255 */
-void scaleValues() {
-	//Calculate the scale
-	float scale = (colorElements - 1.0) / (maxTemp - minTemp);
-	//Go through image array
-	for (int i = 0; i < 19200; i++) {
-		//Limit values
-		if (image[i] > maxTemp)
-			image[i] = maxTemp;
-		if (image[i] < minTemp)
-			image[i] = minTemp;
-		image[i] = (image[i] - minTemp) * scale;
-	}
-}
-
 /* Go through the array of temperatures and find min and max temp */
 void limitValues() {
 	maxTemp = 0;
@@ -233,14 +218,76 @@ void limitValues() {
 	}
 }
 
+/* Get the colors for hot / cold mode selection */
+void getHotColdColors(byte* red, byte* green, byte* blue) {
+	switch (hotColdColor) {
+		//White
+	case hotColdColor_white:
+		*red = 255;
+		*green = 255;
+		*blue = 255;
+		break;
+		//Black
+	case hotColdColor_black:
+		*red = 0;
+		*green = 0;
+		*blue = 0;
+		break;
+		//White
+	case hotColdColor_red:
+		*red = 255;
+		*green = 0;
+		*blue = 0;
+		break;
+		//White
+	case hotColdColor_green:
+		*red = 0;
+		*green = 255;
+		*blue = 0;
+		break;
+		//White
+	case hotColdColor_blue:
+		*red = 0;
+		*green = 0;
+		*blue = 255;
+		break;
+	}
+}
+
 /* Convert the lepton values to RGB colors */
 void convertColors() {
+	uint8_t red, green, blue;
+
+	//Calculate the scale
+	float scale = (colorElements - 1.0) / (maxTemp - minTemp);
+
+	//For hot and cold mode, calculate rawlevel
+	float hotColdRawLevel = 0.0;
+	if (hotColdMode != hotColdMode_disabled)
+		hotColdRawLevel = tempToRaw(hotColdLevel);
+
 	for (int i = 0; i < 19200; i++) {
 		uint16_t value = image[i];
-		//Look for the corresponding RGB values
-		uint8_t red = colorMap[3 * value];
-		uint8_t green = colorMap[3 * value + 1];
-		uint8_t blue = colorMap[3 * value + 2];
+
+		//Limit values
+		if (image[i] > maxTemp)
+			image[i] = maxTemp;
+		if (image[i] < minTemp)
+			image[i] = minTemp;
+
+		//Hot
+		if ((hotColdMode == hotColdMode_hot) && (value >= hotColdRawLevel) && (calStatus != cal_warmup))
+			getHotColdColors(&red, &green, &blue);
+		//Cold
+		else if ((hotColdMode == hotColdMode_cold) && (value <= hotColdRawLevel) && (calStatus != cal_warmup))
+			getHotColdColors(&red, &green, &blue);
+		//Apply colorscheme
+		else {
+			value = (image[i] - minTemp) * scale;
+			red = colorMap[3 * value];
+			green = colorMap[3 * value + 1];
+			blue = colorMap[3 * value + 2];
+		}
 		//Convert to RGB565
 		image[i] = (((red & 248) | green >> 5) << 8) | ((green & 28) << 3 | blue >> 3);
 	}
@@ -260,14 +307,11 @@ void createVisCombImg() {
 		refreshTempPoints();
 
 	//Find min and max if not in manual mode and limits not locked
-	if ((agcEnabled) && (!limitsLocked)) {
-		//Limit values if we are in the menu or not in cold/hot mode
-		if ((colorScheme != colorScheme_coldest) && (colorScheme != colorScheme_hottest))
-			limitValues();
-	}
+	if ((agcEnabled) && (!limitsLocked))
+		limitValues();
 
 	//Find min / max position
-	if (minMaxPoints != minMaxPoints_none)
+	if (minMaxPoints != minMaxPoints_disabled)
 		findMinMaxPositions();
 
 	//For combined only
@@ -277,8 +321,6 @@ void createVisCombImg() {
 			boxFilter();
 		else if (filterType == filterType_gaussian)
 			gaussianFilter();
-		//Scale the values
-		scaleValues();
 		//Convert lepton data to RGB565 colors
 		convertColors();
 	}
@@ -303,11 +345,8 @@ void createThermalImg(bool menu) {
 		refreshTempPoints();
 
 	//Find min and max if not in manual mode and limits not locked
-	if ((agcEnabled) && (!limitsLocked)) {
-		//Limit values if we are in the menu or not in cold/hot mode
-		if (menu || ((colorScheme != colorScheme_coldest) && (colorScheme != colorScheme_hottest)))
-			limitValues();
-	}
+	if ((agcEnabled) && (!limitsLocked))
+		limitValues();
 
 	//If image save, save the raw data
 	if (imgSave == imgSave_create)
@@ -320,11 +359,9 @@ void createThermalImg(bool menu) {
 		gaussianFilter();
 
 	//Find min / max position
-	if(minMaxPoints != minMaxPoints_none)
+	if (minMaxPoints != minMaxPoints_disabled)
 		findMinMaxPositions();
 
-	//Scale the values
-	scaleValues();
 	//Convert lepton data to RGB565 colors
 	convertColors();
 }
@@ -355,6 +392,8 @@ void getTouchPos(int* x, int* y) {
 void tempPointFunction(bool remove) {
 	int x, y;
 
+	//Safe delay
+	delay(10);
 	//Create thermal image
 	if (displayMode == displayMode_thermal)
 		createThermalImg();

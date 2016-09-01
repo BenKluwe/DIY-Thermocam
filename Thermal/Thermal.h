@@ -73,18 +73,37 @@ void showColorBar() {
 	char buffer[6];
 	byte red, green, blue;
 	byte count = 0;
+
+	//Calculate color bar height corresponding on color elements
 	byte height = 120 - ((120 - (colorElements / 4)) / 2);
+
+	//Calculate color level for hot and cold
+	float colorLevel = 0;
+	if (hotColdMode != hotColdMode_disabled)
+		colorLevel = (tempToRaw(hotColdLevel) * 1.0 - minTemp) / (maxTemp * 1.0 - minTemp);
+
 	//Display color bar
 	for (int i = 0; i < (colorElements - 1); i++) {
 		if ((i % 4) == 0) {
-			red = colorMap[i * 3];
-			green = colorMap[(i * 3) + 1];
-			blue = colorMap[(i * 3) + 2];
+			//Hot
+			if ((hotColdMode == hotColdMode_hot) && (i >= (colorLevel * colorElements)) && (calStatus != cal_warmup))
+				getHotColdColors(&red, &green, &blue);
+			//Cold
+			else if ((hotColdMode == hotColdMode_cold) && (i <= (colorLevel * colorElements)) && (calStatus != cal_warmup))
+				getHotColdColors(&red, &green, &blue);
+			//Other
+			else {
+				red = colorMap[i * 3];
+				green = colorMap[(i * 3) + 1];
+				blue = colorMap[(i * 3) + 2];
+			}
+			//Draw the line
 			display.setColor(red, green, blue);
 			display.drawLine(149, height - count, 157, height - count);
 			count++;
 		}
 	}
+
 	//Set text color
 	setTextColor();
 	//Calculate min and max temp in celcius/fahrenheit
@@ -223,7 +242,6 @@ void selectColorScheme() {
 	}
 }
 
-
 /* Change the display options */
 void changeDisplayOptions(byte* pos) {
 	switch (*pos) {
@@ -288,14 +306,14 @@ void changeDisplayOptions(byte* pos) {
 		break;
 		//Hottest or coldest display
 	case 9:
-		if (minMaxPoints == minMaxPoints_none)
+		if (minMaxPoints == minMaxPoints_disabled)
 			minMaxPoints = minMaxPoints_min;
 		else if (minMaxPoints == minMaxPoints_min)
 			minMaxPoints = minMaxPoints_max;
 		else if (minMaxPoints == minMaxPoints_max)
 			minMaxPoints = minMaxPoints_both;
 		else
-			minMaxPoints = minMaxPoints_none;
+			minMaxPoints = minMaxPoints_disabled;
 		EEPROM.write(eeprom_minMaxPoints, minMaxPoints);
 		break;
 	}
@@ -308,9 +326,6 @@ void changeColorScheme(byte* pos) {
 	colorScheme = *pos;
 	//Map to the right color scheme
 	selectColorScheme();
-	//Choose limits for hot and cold mode
-	if ((colorScheme == colorScheme_coldest) || (colorScheme == colorScheme_hottest))
-		hotColdChooser();
 	//Save to EEPROM
 	EEPROM.write(eeprom_colorScheme, colorScheme);
 }
@@ -321,16 +336,43 @@ void limitLock() {
 	if (calStatus == cal_warmup) {
 		showMsg((char*) "Wait for warmup");
 	}
-	//Unlock limits
-	else if (limitsLocked) {
-		showMsg((char*) "Limits unlocked");
-		limitsLocked = false;
+	//When manual limits are set
+	else if (EEPROM.read(eeprom_minMaxSet) == eeprom_setValue) {
+		//When in auto mode, go to limits locked
+		if (agcEnabled && !limitsLocked) {
+			showMsg((char*) "Limits locked");
+			agcEnabled = true;
+			limitsLocked = true;
+		}
+		//When in limits locked mode, go to manual mode
+		else if (agcEnabled && limitsLocked) {
+			showMsg((char*) "Switch to MANUAL");
+			agcEnabled = false;
+			limitsLocked = false;
+			//Load old values from EEPROM
+			loadMinMaxTemp();
+		}
+		//When in manual mode, go to auto mode
+		else if (!agcEnabled) {
+			showMsg((char*) "Switch to AUTO");
+			agcEnabled = true;
+			limitsLocked = false;
+		}
 	}
-	//Lock limits
+	//Otherwise lock or unlock limits
 	else {
-		showMsg((char*) "Limits locked");
-		limitsLocked = true;
+		//Unlock limits
+		if (limitsLocked) {
+			showMsg((char*) "Limits unlocked");
+			limitsLocked = false;
+		}
+		//Lock limits
+		else {
+			showMsg((char*) "Limits locked");
+			limitsLocked = true;
+		}
 	}
+
 	attachInterrupts();
 	showMenu = false;
 	lockLimits = false;
@@ -392,6 +434,7 @@ void displayInfos() {
 		displayMinMaxPoint(minTempPos, (const char *)"C");
 	if (minMaxPoints & minMaxPoints_max)
 		displayMinMaxPoint(maxTempPos, (const char *)"H");
+
 	//Set write back to display
 	display.writeToImage = false;
 }

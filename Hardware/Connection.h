@@ -235,10 +235,11 @@ void sendFrame(bool color) {
 		serialClear();
 		//Convert to colors
 		if (color) {
-			//Scale Values
-			scaleValues();
-			//Apply box blur
-			boxFilter();
+			//Apply low-pass filter
+			if (filterType == filterType_box)
+				boxFilter();
+			else if (filterType == filterType_gaussian)
+				gaussianFilter();
 			//Convert to RGB565
 			convertColors();
 		}
@@ -411,11 +412,8 @@ void serialOutput() {
 		if (pointsEnabled)
 			refreshTempPoints();
 		//Find min and max if not in manual mode and limits not locked
-		if ((agcEnabled) && (!limitsLocked)) {
-			//Limit values if we are in the menu or not in cold/hot mode
-			if ((colorScheme != colorScheme_coldest) && (colorScheme != colorScheme_hottest))
+		if ((agcEnabled) && (!limitsLocked))
 				limitValues();
-		}
 
 		//Check button press if not in terminal mode
 		if (extButtonPressed())

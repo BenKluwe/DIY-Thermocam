@@ -229,8 +229,9 @@ void stdEEPROMSet() {
 	EEPROM.write(eeprom_storageEnabled, false);
 	EEPROM.write(eeprom_displayMode, displayMode_thermal);
 	EEPROM.write(eeprom_textColor, textColor_white);
-	EEPROM.write(eeprom_minMaxPoints, minMaxPoints_none);
+	EEPROM.write(eeprom_minMaxPoints, minMaxPoints_disabled);
 	EEPROM.write(eeprom_screenOffTime, screenOffTime_disabled);
+	EEPROM.write(eeprom_hotColdMode, hotColdMode_disabled);
 	//Set Color Scheme to Rainbow
 	EEPROM.write(eeprom_colorScheme, colorScheme_rainbow);
 	//Set filter type to box blur

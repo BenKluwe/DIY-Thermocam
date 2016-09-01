@@ -270,14 +270,8 @@ void loadMinMaxTemp() {
 	if (EEPROM.read(eeprom_minMaxSet) == eeprom_setValue) {
 		min = ((EEPROM.read(eeprom_minTempHigh) << 8) + EEPROM.read(eeprom_minTempLow));
 		max = ((EEPROM.read(eeprom_maxTempHigh) << 8) + EEPROM.read(eeprom_maxTempLow));
-		while (((int)round(calFunction(minTemp))) > (min))
-			minTemp--;
-		while (((int)round(calFunction(minTemp))) < (min))
-			minTemp++;
-		while (((int)round(calFunction(maxTemp))) > (max))
-			maxTemp--;
-		while (((int)round(calFunction(maxTemp))) < (max))
-			maxTemp++;
+		minTemp = tempToRaw(min);
+		maxTemp = tempToRaw(max);
 	}
 }
 
@@ -452,9 +446,6 @@ void readEEPROM() {
 		colorScheme = read;
 	else
 		colorScheme = colorScheme_rainbow;
-	//If Hot or Cold on startup, switch to Rainbow
-	if ((colorScheme == colorScheme_coldest) || (colorScheme == colorScheme_hottest))
-		colorScheme = colorScheme_rainbow;
 	//Convert Enabled
 	read = EEPROM.read(eeprom_convertEnabled);
 	if ((read == false) || (read == true))
@@ -533,6 +524,17 @@ void readEEPROM() {
 		textColor = read;
 	else
 		textColor = textColor_white;
+	//Hot / cold mode
+	read = EEPROM.read(eeprom_hotColdMode);
+	if ((read >= hotColdMode_disabled) && (read <= hotColdMode_hot))
+		hotColdMode = read;
+	else
+		hotColdMode = hotColdMode_disabled;
+	//Hot / cold level and color
+	if (hotColdMode != hotColdMode_disabled) {
+		hotColdLevel = ((EEPROM.read(eeprom_hotColdLevelHigh) << 8) + EEPROM.read(eeprom_hotColdLevelLow));
+		hotColdColor = EEPROM.read(eeprom_hotColdColor);
+	}
 	//Calibration slope
 	read = EEPROM.read(eeprom_calSlopeSet);
 	if (read == eeprom_setValue)
@@ -541,10 +543,10 @@ void readEEPROM() {
 		calSlope = cal_stdSlope;
 	//Min/Max Points
 	read = EEPROM.read(eeprom_minMaxPoints);
-	if ((read == minMaxPoints_none) || (read == minMaxPoints_min) || (read == minMaxPoints_max) || (read == minMaxPoints_both))
+	if ((read == minMaxPoints_disabled) || (read == minMaxPoints_min) || (read == minMaxPoints_max) || (read == minMaxPoints_both))
 		minMaxPoints = read;
 	else
-		minMaxPoints = minMaxPoints_none;
+		minMaxPoints = minMaxPoints_disabled;
 	//Adjust combined
 	read = EEPROM.read(eeprom_adjCombSet);
 	if (read == eeprom_setValue) {

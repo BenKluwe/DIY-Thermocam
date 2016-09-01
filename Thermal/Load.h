@@ -75,8 +75,6 @@ void displayRawData() {
 		boxFilter();
 	else if (filterType == filterType_gaussian)
 		gaussianFilter();
-	//Scale values
-	scaleValues();
 	//Convert lepton data to RGB565 colors
 	convertColors();
 	//Display additional information
@@ -946,6 +944,8 @@ void loadThermal() {
 	dateEnabled = false;
 	timeEnabled = false;
 	storageEnabled = false;
+	minMaxPoints = minMaxPoints_disabled;
+	hotColdMode = hotColdMode_disabled;
 	//Load message
 	drawMessage((char*) "Please wait..");
 	//Alloc space

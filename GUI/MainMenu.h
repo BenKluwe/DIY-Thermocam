@@ -151,94 +151,6 @@ bool calibrationChooser() {
 	return true;
 }
 
-/* Touch handler for the hot & cold limit changer menu */
-void hotColdChooserHandler() {
-	//Help variables
-	char margin[14];
-	uint16_t value;
-	int temp;
-	float limit;
-	//Cold mode, limit is 30 of 224
-	if (colorScheme == colorScheme_coldest)
-		limit = 0.134;
-	//Hot mode, limit is 194 of 224
-	if (colorScheme == colorScheme_hottest)
-		limit = 0.866;
-	while (true) {
-		display.setFont(smallFont);
-		value = (limit * (maxTemp - minTemp)) + minTemp;
-		temp = round(calFunction(value));
-		//Display Fahrenheit or Celcius
-		if (tempFormat == tempFormat_celcius) {
-			sprintf(margin, "Margin: %dC", temp);
-		}
-		else {
-			sprintf(margin, "Margin: %dF", temp);
-		}
-		display.print(margin, CENTER, 145);
-		display.setFont(bigFont);
-		//If touch pressed
-		if (touch.touched() == true) {
-			int pressedButton = touchButtons.checkButtons(true);
-			//RESET
-			if (pressedButton == 0) {
-				createThermalImg(true);
-			}
-			//SELECT
-			else if (pressedButton == 1) {
-				break;
-			}
-			//MINUS
-			else if (pressedButton == 2) {
-				while (((round(calFunction(value))) > (temp - 1)) && (minTemp > 1)) {
-					minTemp--;
-					maxTemp--;
-					value = (limit * (maxTemp - minTemp)) + minTemp;
-				}
-			}
-			//PLUS
-			else if (pressedButton == 3) {
-				while (((round(calFunction(value))) < (temp + 1)) && (maxTemp < 16384)) {
-					minTemp++;
-					maxTemp++;
-					value = (limit * (maxTemp - minTemp)) + minTemp;
-				}
-			}
-			//Prepare the preview image
-			delay(10);
-			if (pressedButton != 0)
-				createThermalImg();
-			//Display the preview image
-			display.drawBitmap(80, 40, 160, 120, image, 1);
-		}
-	}
-}
-
-/* Select the limit in Hot & Cold mode */
-void hotColdChooser() {
-	//Background & title
-	mainMenuBackground();
-	mainMenuTitle((char*) "Set Level");
-	//Draw the buttons
-	touchButtons.deleteAllButtons();
-	touchButtons.setTextFont(bigFont);
-	touchButtons.addButton(15, 188, 140, 40, (char*) "Reset");
-	touchButtons.addButton(165, 188, 140, 40, (char*) "OK");
-	touchButtons.addButton(15, 48, 55, 120, (char*) "-");
-	touchButtons.addButton(250, 48, 55, 120, (char*) "+");
-	touchButtons.drawButtons();
-	//Prepare the preview image
-	delay(10);
-	createThermalImg(true);
-	//Display the preview image
-	display.drawBitmap(80, 40, 160, 120, image, 1);
-	//Draw the border for the preview image
-	display.setColor(VGA_WHITE);
-	display.drawRect(79, 39, 241, 161);
-	//Go into the normal touch handler
-	hotColdChooserHandler();
-}
-
 /* Touch Handler for the limit chooser menu */
 void limitChooserHandler() {
 	//Save the old limits in case the user wants to restore them
@@ -248,7 +160,7 @@ void limitChooserHandler() {
 	bool minChange = false;
 	bool maxChange = false;
 	//Buffer
-	int currentVal, min, max;
+	int min, max;
 	char minC[10];
 	char maxC[10];
 	//Load old values from EEPROM if saved previously
@@ -313,11 +225,10 @@ void limitChooserHandler() {
 			else if (pressedButton == 2) {
 				//In minimum change mode - decrease minimum temp
 				if ((minChange == true) && (maxChange == false)) {
-					currentVal = (int)round(calFunction(minTemp));
-					//Check if minimum temp is not already too low
-					if (currentVal > -69.00) {
-						while (((int)round(calFunction(minTemp))) > (currentVal - 1))
-							minTemp = minTemp - 1;
+					//Check if minimum is in range
+					if (min > -70) {
+						min--;
+						minTemp = tempToRaw(min);
 					}
 				}
 				//Enter minimum change mode
@@ -329,11 +240,10 @@ void limitChooserHandler() {
 				}
 				//In maximum change mode - decrease maximum temp
 				else if ((minChange == false) && (maxChange == true)) {
-					currentVal = (int)round(calFunction(maxTemp));
-					//Check of maximum temp is still biggerer than minimum temp
-					if (currentVal > ((int)round(calFunction(minTemp)) + 1)) {
-						while (((int)round(calFunction(maxTemp))) > (currentVal - 1))
-							maxTemp = maxTemp - 1;
+					//Check if maximum is bigger than minimum
+					if (max > (min + 1)) {
+						max--;
+						maxTemp = tempToRaw(max);
 					}
 				}
 			}
@@ -341,11 +251,10 @@ void limitChooserHandler() {
 			else if (pressedButton == 3) {
 				//In maximum change mode - increase maximum temp
 				if ((minChange == false) && (maxChange == true)) {
-					currentVal = (int)round(calFunction(maxTemp));
-					//Check if maximum temp is not already too high
-					if (currentVal < 379.00) {
-						while (((int)round(calFunction(maxTemp))) < (currentVal + 1))
-							maxTemp = maxTemp + 1;
+					//Check if maximum is in range
+					if (max < 380) {
+						max++;
+						maxTemp = tempToRaw(max);
 					}
 				}
 				//Enter maximum change mode
@@ -358,12 +267,10 @@ void limitChooserHandler() {
 				}
 				//In minimum change mode - increase minimum temp
 				else if ((minChange == true) && (maxChange == false)) {
-					//Adjust temperatures from normal calibration
-					currentVal = (int)round(calFunction(minTemp));
-					//Check if minimum temp is still smaller than maximum temp
-					if (currentVal < ((int)round(calFunction(maxTemp)) - 1)) {
-						while (((int)round(calFunction(minTemp))) < (currentVal + 1))
-							minTemp = minTemp + 1;
+					//Check if minimum is smaller than maximum
+					if (min < (max - 1)) {
+						min++;
+						minTemp = tempToRaw(min);
 					}
 				}
 			}
@@ -426,14 +333,23 @@ bool tempLimits() {
 			int pressedButton = touchButtons.checkButtons(true);
 			//AUTO
 			if (pressedButton == 0) {
+				//Enable AGC again and disable limits locked
 				agcEnabled = true;
+				limitsLocked = false;
+
+				//Reset EEPROM
 				EEPROM.write(eeprom_minMaxSet, 0);
 				return true;
 			}
 			//MANUAL
 			else if (pressedButton == 1) {
+				//Disable AGC and limits locked
 				agcEnabled = false;
+				limitsLocked = false;
+
+				//Let the user choose the new limits
 				limitChooser();
+
 				//Save min and max to EEPROM
 				int16_t min = (int16_t)round(calFunction(minTemp));
 				int16_t max = (int16_t)round(calFunction(maxTemp));
@@ -452,7 +368,7 @@ bool tempLimits() {
 }
 
 /* Switch the current temperature menu item */
-void mainMenuTempString(int pos) {
+void tempMenuString(int pos) {
 	char* text = (char*) "";
 	switch (pos) {
 	case 0:
@@ -481,14 +397,14 @@ bool tempMenu() {
 	//Background
 	mainMenuBackground();
 	//Title
-	mainMenuTitle((char*) "Add temp.");
+	mainMenuTitle((char*) "Temp. points");
 	//Border
 	display.setColor(255, 106, 0);
 	display.drawRect(65, 57, 257, 111);
 	//Draw the selection menu
 	drawSelectionMenu();
 	//Draw the current item
-	mainMenuTempString(tempMenuPos);
+	tempMenuString(tempMenuPos);
 	//Save the current position inside the menu
 	while (true) {
 		//Touch screen pressed
@@ -536,15 +452,284 @@ bool tempMenu() {
 					tempMenuPos = 0;
 			}
 			//Change the menu name
-			mainMenuTempString(tempMenuPos);
+			tempMenuString(tempMenuPos);
 		}
 	}
 }
 
+/* Switch the current hot/cold color menu item */
+void hotColdColorMenuString(int pos) {
+	char* text = (char*) "";
+	switch (pos) {
+		//White
+	case 0:
+		text = (char*) "White";
+		break;
+		//Black
+	case 1:
+		text = (char*) "Black";
+		break;
+		//Red
+	case 2:
+		text = (char*) "Red";
+		break;
+		//Green
+	case 3:
+		text = (char*) "Green";
+		break;
+		//Blue
+	case 4:
+		text = (char*) "Blue";
+		break;
+	}
+	mainMenuSelection(text);
+}
 
+/* Menu to display the color in hot/cold color mode */
+bool hotColdColorMenu() {
+	//Save the current position inside the menu
+	static byte hotColdColorMenuPos = 0;
+	//Background
+	mainMenuBackground();
+	//Title
+	mainMenuTitle((char*) "Select color");
+	//Border
+	display.setColor(255, 106, 0);
+	display.drawRect(65, 57, 257, 111);
+	//Draw the selection menu
+	drawSelectionMenu();
+	//Draw the current item
+	hotColdColorMenuString(hotColdColorMenuPos);
+	//Save the current position inside the menu
+	while (true) {
+		//Touch screen pressed
+		if (touch.touched() == true) {
+			int pressedButton = touchButtons.checkButtons(true);
+			//SELECT
+			if (pressedButton == 3) {
+				//Save
+				hotColdColor = hotColdColorMenuPos;
+				//Write to EEPROM
+				EEPROM.write(eeprom_hotColdColor, hotColdColor);
+				return true;
+			}
+			//BACK
+			if (pressedButton == 2)
+				return false;
+			//BACKWARD
+			else if (pressedButton == 0) {
+				if (hotColdColorMenuPos > 0)
+					hotColdColorMenuPos--;
+				else if (hotColdColorMenuPos == 0)
+					hotColdColorMenuPos = 4;
+			}
+			//FORWARD
+			else if (pressedButton == 1) {
+				if (hotColdColorMenuPos < 4)
+					hotColdColorMenuPos++;
+				else if (hotColdColorMenuPos == 4)
+					hotColdColorMenuPos = 0;
+			}
+			//Change the menu name
+			hotColdColorMenuString(hotColdColorMenuPos);
+		}
+	}
+}
+
+/* Touch handler for the hot & cold limit changer menu */
+void hotColdChooserHandler() {
+	//Help variables
+	char margin[14];
+
+	//Display level as temperature
+	display.setFont(smallFont);
+	if (!tempFormat) {
+		sprintf(margin, "Limit: %dC", hotColdLevel);
+	}
+	else {
+		sprintf(margin, "Limit: %dF", hotColdLevel);
+	}
+	display.print(margin, CENTER, 145);
+
+	//Touch handler
+	while (true) {
+		//If touch pressed
+		if (touch.touched() == true) {
+			int pressedButton = touchButtons.checkButtons(true);
+			//RESET
+			if (pressedButton == 0) {
+				if (hotColdMode == hotColdMode_cold)
+					hotColdLevel = (int16_t) round(calFunction(0.1 * (maxTemp - minTemp) + minTemp));
+				if (hotColdMode == hotColdMode_hot)
+					hotColdLevel = (int16_t) round(calFunction(0.9 * (maxTemp - minTemp) + minTemp));
+			}
+			//SELECT
+			else if (pressedButton == 1) {
+				//Save to EEPROM
+				EEPROM.write(eeprom_hotColdLevelHigh, (hotColdLevel & 0xFF00) >> 8);
+				EEPROM.write(eeprom_hotColdLevelLow, hotColdLevel & 0x00FF);
+				break;
+			}
+			//MINUS
+			else if (pressedButton == 2) {
+				if (hotColdLevel > round(calFunction(minTemp)))
+					hotColdLevel--;
+			}
+			//PLUS
+			else if (pressedButton == 3) {
+				if (hotColdLevel < round(calFunction(maxTemp)))
+					hotColdLevel++;
+			}
+			//Prepare the preview image
+			delay(10);
+			createThermalImg(true);
+			//Display the preview image
+			display.drawBitmap(80, 40, 160, 120, image, 1);
+			//Display level as temperature
+			if (!tempFormat) {
+				sprintf(margin, "Limit: %dC", hotColdLevel);
+			}
+			else {
+				sprintf(margin, "Limit: %dF", hotColdLevel);
+			}
+			display.print(margin, CENTER, 145);
+		}
+	}
+}
+
+/* Select the limit in hot/cold mode */
+void hotColdChooser() {
+	//Still in warmup, do not add points
+	if (calStatus == cal_warmup) {
+		drawMessage((char*) "Please wait for sensor warmup!", true);
+		delay(1500);
+		hotColdMode = EEPROM.read(eeprom_hotColdMode);
+		return;
+	}
+	//Background & title
+	mainMenuBackground();
+	mainMenuTitle((char*) "Set Limit");
+	//Draw the buttons
+	touchButtons.deleteAllButtons();
+	touchButtons.setTextFont(bigFont);
+	touchButtons.addButton(15, 188, 140, 40, (char*) "Reset");
+	touchButtons.addButton(165, 188, 140, 40, (char*) "OK");
+	touchButtons.addButton(15, 48, 55, 120, (char*) "-");
+	touchButtons.addButton(250, 48, 55, 120, (char*) "+");
+	touchButtons.drawButtons();
+	//Calculate initial level
+	if (hotColdMode == hotColdMode_cold)
+		hotColdLevel = (int16_t)round(calFunction(0.1 * (maxTemp - minTemp) + minTemp));
+	if (hotColdMode == hotColdMode_hot)
+		hotColdLevel = (int16_t)round(calFunction(0.9 * (maxTemp - minTemp) + minTemp));
+	//Prepare the preview image
+	delay(10);
+	createThermalImg(true);
+	//Display the preview image
+	display.drawBitmap(80, 40, 160, 120, image, 1);
+	//Draw the border for the preview image
+	display.setColor(VGA_WHITE);
+	display.drawRect(79, 39, 241, 161);
+	//Go into the normal touch handler
+	hotColdChooserHandler();
+}
+
+/* Switch the current hot/cold menu item */
+void hotColdMenuString(int pos) {
+	char* text = (char*) "";
+	switch (pos) {
+		//Disabled
+	case 0:
+		text = (char*) "Disabled";
+		break;
+		//Cold
+	case 1:
+		text = (char*) "Cold";
+		break;
+		//Hot
+	case 2:
+		text = (char*) "Hot";
+		break;
+	}
+	mainMenuSelection(text);
+}
+
+/* Menu to display hot or cold areas */
+bool hotColdMenu() {
+	redraw:
+	//Save the current position inside the menu
+	byte hotColdMenuPos = hotColdMode;
+	//Background
+	mainMenuBackground();
+	//Title
+	mainMenuTitle((char*) "Hot / Cold");
+	//Border
+	display.setColor(255, 106, 0);
+	display.drawRect(65, 57, 257, 111);
+	//Draw the selection menu
+	drawSelectionMenu();
+	//Draw the current item
+	hotColdMenuString(hotColdMenuPos);
+	//Save the current position inside the menu
+	while (true) {
+		//Touch screen pressed
+		if (touch.touched() == true) {
+			int pressedButton = touchButtons.checkButtons(true);
+			//SELECT
+			if (pressedButton == 3) {
+				switch (hotColdMenuPos) {
+					//Disabled
+				case hotColdMode_disabled:
+					hotColdMode = hotColdMode_disabled;
+					break;
+					//Cold
+				case hotColdMode_cold:
+					hotColdMode = hotColdMode_cold;			
+					break;
+					//Hot
+				case hotColdMode_hot:
+					hotColdMode = hotColdMode_hot;
+					break;
+				}
+				//For hot and cold
+				if (hotColdMode != hotColdMode_disabled) {
+					//Choose the color
+					if (hotColdColorMenu())
+						//Set the limit
+						hotColdChooser();
+					//Go back
+					else
+						goto redraw;
+				}
+				//Write to EEPROM
+				EEPROM.write(eeprom_hotColdMode, hotColdMode);
+				return true;
+			}
+			//BACK
+			if (pressedButton == 2)
+				return false;
+			//BACKWARD
+			else if (pressedButton == 0) {
+				if (hotColdMenuPos > 0)
+					hotColdMenuPos--;
+				else if (hotColdMenuPos == 0)
+					hotColdMenuPos = 2;
+			}
+			//FORWARD
+			else if (pressedButton == 1) {
+				if (hotColdMenuPos < 2)
+					hotColdMenuPos++;
+				else if (hotColdMenuPos == 2)
+					hotColdMenuPos = 0;
+			}
+			//Change the menu name
+			hotColdMenuString(hotColdMenuPos);
+		}
+	}
+}
 
 /* Switch the current color scheme item */
-void mainMenuColorString(int pos) {
+void colorMenuString(int pos) {
 	char* text = (char*) "";
 	switch (pos) {
 	case colorScheme_arctic:
@@ -609,10 +794,9 @@ void mainMenuColorString(int pos) {
 }
 
 /* Choose the applied color scale */
-bool changeColor() {
+bool colorMenu() {
 	//Save the current position inside the menu
 	byte changeColorPos = colorScheme;
-redraw:
 	//Background
 	mainMenuBackground();
 	//Title
@@ -623,21 +807,14 @@ redraw:
 	//Draw the selection menu
 	drawSelectionMenu();
 	//Draw the current item
-	mainMenuColorString(changeColorPos);
+	colorMenuString(changeColorPos);
 	while (true) {
 		//Touch screen pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
 			//SELECT
 			if (pressedButton == 3) {
-				//If hot or cold chosen and still in warmup
-				if (((changeColorPos == colorScheme_coldest) || (changeColorPos == colorScheme_hottest)) && (calStatus == cal_warmup)) {
-					drawMessage((char*) "Please wait for sensor warmup!", true);
-					delay(1500);
-					goto redraw;
-				}
-				else
-					changeColorScheme(&changeColorPos);
+				changeColorScheme(&changeColorPos);
 				return true;
 			}
 			//BACK
@@ -658,13 +835,13 @@ redraw:
 					changeColorPos = 0;
 			}
 			//Change the menu name
-			mainMenuColorString(changeColorPos);
+			colorMenuString(changeColorPos);
 		}
 	}
 }
 
 /* Switch the current display mode menu item */
-void mainMenuModeString(int pos) {
+void modeMenuString(int pos) {
 	char* text = (char*) "";
 	switch (pos) {
 	case 0:
@@ -681,7 +858,7 @@ void mainMenuModeString(int pos) {
 }
 
 /* Choose the current display mode */
-bool changeMode() {
+bool modeMenu() {
 	//Save the current position inside the menu
 	byte changeDisplayMode = displayMode;
 	//Background
@@ -694,7 +871,7 @@ bool changeMode() {
 	//Draw the selection menu
 	drawSelectionMenu();
 	//Draw the current item
-	mainMenuModeString(changeDisplayMode);
+	modeMenuString(changeDisplayMode);
 	while (true) {
 		//Touch screen pressed
 		if (touch.touched() == true) {
@@ -734,13 +911,13 @@ bool changeMode() {
 					changeDisplayMode = 0;
 			}
 			//Change the menu name
-			mainMenuModeString(changeDisplayMode);
+			modeMenuString(changeDisplayMode);
 		}
 	}
 }
 
 /* Switch the current display option item */
-void mainMenuDisplayString(int pos) {
+void liveDispMenuString(int pos) {
 	char* text = (char*) "";
 	switch (pos) {
 		//Battery
@@ -807,7 +984,7 @@ void mainMenuDisplayString(int pos) {
 			text = (char*) "Black Text";
 		else if (textColor == textColor_red)
 			text = (char*) "Red Text";
-		else if(textColor == textColor_green)
+		else if (textColor == textColor_green)
 			text = (char*) "Green Text";
 		else if (textColor == textColor_blue)
 			text = (char*) "Blue Text";
@@ -816,7 +993,7 @@ void mainMenuDisplayString(int pos) {
 		break;
 		//Hottest or coldest
 	case 9:
-		if (minMaxPoints == minMaxPoints_none)
+		if (minMaxPoints == minMaxPoints_disabled)
 			text = (char*) "No Cold/Hot";
 		else if (minMaxPoints == minMaxPoints_min)
 			text = (char*) "Coldest";
@@ -831,7 +1008,7 @@ void mainMenuDisplayString(int pos) {
 }
 
 /* Change the live display options */
-bool liveDispOptions() {
+bool liveDispMenu() {
 	//Save the current position inside the menu
 	static byte displayOptionsPos = 0;
 	//Background
@@ -846,7 +1023,7 @@ bool liveDispOptions() {
 	display.setColor(255, 106, 0);
 	display.drawRect(65, 57, 257, 111);
 	//Draw the current item
-	mainMenuDisplayString(displayOptionsPos);
+	liveDispMenuString(displayOptionsPos);
 	while (true) {
 		//Touch screen pressed
 		if (touch.touched() == true) {
@@ -875,7 +1052,7 @@ bool liveDispOptions() {
 					displayOptionsPos = 0;
 			}
 			//Change the menu name
-			mainMenuDisplayString(displayOptionsPos);
+			liveDispMenuString(displayOptionsPos);
 		}
 	}
 }
@@ -886,11 +1063,11 @@ bool mainMenuSelect(byte pos, byte page) {
 	if (page == 0) {
 		//Change color
 		if (pos == 0) {
-			return changeColor();
+			return colorMenu();
 		}
 		//Change mode
 		if (pos == 1) {
-			return changeMode();
+			return modeMenu();
 		}
 		//Temperature limits
 		if (pos == 2) {
@@ -918,7 +1095,7 @@ bool mainMenuSelect(byte pos, byte page) {
 	if (page == 2) {
 		//Display options
 		if (pos == 0) {
-			return liveDispOptions();
+			return liveDispMenu();
 		}
 		//Laser
 		if (pos == 1) {
@@ -935,9 +1112,12 @@ bool mainMenuSelect(byte pos, byte page) {
 		if (pos == 0) {
 			return calibrate();
 		}
-		//Adjust visual
+		//Isotherm or adjust visual
 		if (pos == 1) {
-			adjustCombinedMenu();
+			if (displayMode == displayMode_thermal)
+				hotColdMenu();
+			else
+				adjustCombinedMenu();
 			return true;
 		}
 		//Points
@@ -979,7 +1159,10 @@ void drawMainMenu(byte pos) {
 	//Fourth page
 	if (pos == 3) {
 		touchButtons.addButton(23, 28, 80, 80, icon10Bitmap, icon10Colors);
-		touchButtons.addButton(120, 28, 80, 80, icon11Bitmap, icon11Colors);
+		if(displayMode == displayMode_thermal)
+			touchButtons.addButton(120, 28, 80, 80, icon11_1Bitmap, icon11_1Colors);
+		else
+			touchButtons.addButton(120, 28, 80, 80, icon11_2Bitmap, icon11_2Colors);
 		touchButtons.addButton(217, 28, 80, 80, icon12Bitmap, icon12Colors);
 	}
 	touchButtons.addButton(23, 132, 80, 80, iconBWBitmap, iconBWColors);

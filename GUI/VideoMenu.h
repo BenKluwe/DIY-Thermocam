@@ -160,8 +160,6 @@ void refreshCapture() {
 		boxFilter();
 	else if (filterType == filterType_gaussian)
 		gaussianFilter();
-	//Scale values
-	scaleValues();
 	//Convert lepton data to RGB565 colors
 	convertColors();
 	//Display additional infos
@@ -292,11 +290,8 @@ void videoCapture() {
 		if (pointsEnabled)
 			refreshTempPoints();
 		//Find min and max if not in manual mode and limits not locked
-		if ((agcEnabled) && (!limitsLocked)) {
-			//Limit values if we are in the menu or not in cold/hot mode
-			if ((colorScheme != colorScheme_coldest) && (colorScheme != colorScheme_hottest))
+		if ((agcEnabled) && (!limitsLocked)) 
 				limitValues();
-		}
 
 		//Normal  mode
 		if (videoInterval == 0)

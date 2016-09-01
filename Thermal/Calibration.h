@@ -8,6 +8,12 @@ float celciusToFahrenheit(float Tc) {
 	return (Tf);
 }
 
+/* Converts a given temperature in Fahrenheit to Celcius */
+float fahrenheitToCelcius(float Tf) {
+	float Tc = (Tf - 32.0) * ((float) 9.0 / 5.0);
+	return Tc;
+}
+
 /* Function to calculate temperature out of Lepton value */
 float calFunction(uint16_t rawValue) {
 	//Calculate offset out of ambient temp
@@ -19,6 +25,18 @@ float calFunction(uint16_t rawValue) {
 	if (tempFormat == tempFormat_fahrenheit)
 		temp = celciusToFahrenheit(temp);
 	return temp;
+}
+
+/* Calculate the lepton value out of an absolute temperature */
+uint16_t tempToRaw(float temp) {
+	//Convert to Celcius if needed
+	if (tempFormat == tempFormat_fahrenheit)
+		temp = fahrenheitToCelcius(temp);
+	//Calculate offset out of ambient temp
+	if ((calStatus != cal_manual) && (agcEnabled) && (!limitsLocked))
+		calOffset = mlx90614Amb - (calSlope * 8192) + calComp;
+	uint16_t rawValue = (temp - calOffset) / calSlope;
+	return rawValue;
 }
 
 /* Calculates the average of the 196 (14x14) pixels in the middle */
@@ -54,10 +72,10 @@ void compensateCalib() {
 		int16_t min = round(calFunction(minTemp));
 		int16_t max = round(calFunction(maxTemp));
 		//If spot temp is lower than current minimum by one degree, lower minimum
-		if ((mlx90614Temp < (min - 1)) && (colorScheme != colorScheme_hottest))
+		if (mlx90614Temp < (min - 1))
 			calComp = mlx90614Temp - min;
 		//If spot temp is higher than current maximum by one degree, raise maximum
-		else if ((mlx90614Temp > (max + 1)) && (colorScheme != colorScheme_coldest))
+		else if (mlx90614Temp > (max + 1))
 			calComp = mlx90614Temp - max;
 	}
 	//Calculate offset out of ambient temp

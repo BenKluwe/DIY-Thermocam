@@ -82,7 +82,7 @@ void checkImageSave() {
 /* Shows on the screen that we saved an image */
 void showMsg(char* msg, bool bottom) {
 	//Set Text Color
-	display.setColor(VGA_WHITE);
+	setTextColor();
 	//set Background transparent
 	display.setBackColor(VGA_TRANSPARENT);
 	//Give the user a hint that it tries to save

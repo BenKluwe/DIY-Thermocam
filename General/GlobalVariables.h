@@ -70,6 +70,10 @@ uint16_t minTemp;
 //Position of min and maxtemp
 uint16_t minTempPos;
 uint16_t maxTempPos;
+//Hot / Cold mode
+byte hotColdMode;
+int16_t hotColdLevel;
+byte hotColdColor;
 
 //If enabled, image will be converted to bitmap every time
 bool convertEnabled;

@@ -47,7 +47,7 @@
 #define filterType_box 2
 
 //Display Min/Max Points
-#define minMaxPoints_none 0
+#define minMaxPoints_disabled 0
 #define minMaxPoints_min 1
 #define minMaxPoints_max 2
 #define minMaxPoints_both 3
@@ -68,6 +68,18 @@
 #define screenOffTime_disabled 0
 #define screenOffTime_10min 1
 #define screenOffTime_30min 2
+
+//Hot / cold
+#define hotColdMode_disabled 0
+#define hotColdMode_cold 1
+#define hotColdMode_hot 2
+
+//Hot / cold color
+#define hotColdColor_white 0
+#define hotColdColor_black 1
+#define hotColdColor_red 2
+#define hotColdColor_green 3
+#define hotColdColor_blue 4
 
 //EEPROM registers
 #define eeprom_tempFormat 101
@@ -101,6 +113,10 @@
 #define eeprom_massStorage 129
 #define eeprom_calSlopeSet 130
 #define eeprom_calSlopeBase 131 //4 Byte (131-134)
+#define eeprom_hotColdMode 135
+#define eeprom_hotColdLevelLow 136
+#define eeprom_hotColdLevelHigh 137
+#define eeprom_hotColdColor 138
 #define eeprom_firstStart 150
 #define eeprom_liveHelper 151
 #define eeprom_fwVersion 250
