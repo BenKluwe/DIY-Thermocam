@@ -1,7 +1,21 @@
 /*
-* Menu to load images and videos from the internal storage
+*
+* LOAD MENU - Display the menu to load images and videos
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
 
+/* Methods */
+
+/* Display the GUI elements for the load menu */
 void displayGUI(int imgCount, char* infoText) {
 	//Set text color
 	setTextColor();
@@ -30,17 +44,17 @@ void displayGUI(int imgCount, char* infoText) {
 void deleteVideo(char* dirname) {
 	//Title & Background
 	drawTitle((char*) "Delete Video");
-	display.setColor(VGA_WHITE);
+	display.setColor(VGA_BLACK);
 	display.setFont(smallFont);
-	display.setBackColor(127, 127, 127);
+	display.setBackColor(200, 200, 200);
 	display.print((char*)"Do you want to delete this video ?", CENTER, 66);
 	display.print((char*)"This will also remove the", CENTER, 105);
 	display.print((char*)"other related files to it. ", CENTER, 125);
 	//Draw the buttons
 	touchButtons.deleteAllButtons();
 	touchButtons.setTextFont(bigFont);
-	touchButtons.addButton(15, 160, 140, 55, (char*) "No");
 	touchButtons.addButton(165, 160, 140, 55, (char*) "Yes");
+	touchButtons.addButton(15, 160, 140, 55, (char*) "No");
 	touchButtons.drawButtons();
 	touchButtons.setTextFont(smallFont);
 	//Touch handler
@@ -49,8 +63,8 @@ void deleteVideo(char* dirname) {
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
 			//YES
-			if (pressedButton == 1) {
-				drawMessage((char*) "Delete video..");
+			if (pressedButton == 0) {
+				showFullMessage((char*) "Delete video..");
 				//Start SD
 				startAltClockline(true);
 				//Go into the video folder
@@ -91,12 +105,12 @@ void deleteVideo(char* dirname) {
 				sd.rmdir(dirname);
 				//End SD
 				endAltClockline();
-				drawMessage((char*) "Video deleted!");
+				showFullMessage((char*) "Video deleted!");
 				delay(1000);
 				return;
 			}
 			//NO
-			else if (pressedButton == 0) {
+			else if (pressedButton == 1) {
 				return;
 			}
 		}
@@ -107,17 +121,17 @@ void deleteVideo(char* dirname) {
 void deleteImage(char* filename) {
 	//Title & Background
 	drawTitle((char*) "Delete Image");
-	display.setColor(VGA_WHITE);
+	display.setColor(VGA_BLACK);
 	display.setFont(smallFont);
-	display.setBackColor(127, 127, 127);
+	display.setBackColor(200, 200, 200);
 	display.print((char*)"Do you want to delete this image ?", CENTER, 66);
 	display.print((char*)"This will also remove the", CENTER, 105);
 	display.print((char*)"other related files to it. ", CENTER, 125);
 	//Draw the buttons
 	touchButtons.deleteAllButtons();
 	touchButtons.setTextFont(bigFont);
-	touchButtons.addButton(15, 160, 140, 55, (char*) "No");
 	touchButtons.addButton(165, 160, 140, 55, (char*) "Yes");
+	touchButtons.addButton(15, 160, 140, 55, (char*) "No");
 	touchButtons.drawButtons();
 	touchButtons.setTextFont(smallFont);;
 	//Touch handler
@@ -126,8 +140,8 @@ void deleteImage(char* filename) {
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
 			//YES
-			if (pressedButton == 1) {
-				drawMessage((char*) "Delete image..");
+			if (pressedButton == 0) {
+				showFullMessage((char*) "Delete image..");
 				//Start SD
 				startAltClockline();
 				//Delete .DAT file
@@ -141,12 +155,12 @@ void deleteImage(char* filename) {
 				if ((convertEnabled == 1) && (sd.exists(filename)))
 					sd.remove(filename);
 				endAltClockline();
-				drawMessage((char*) "Image deleted!");
+				showFullMessage((char*) "Image deleted!");
 				delay(1000);
 				return;
 			}
 			//NO
-			else if (pressedButton == 0) {
+			else if (pressedButton == 1) {
 				return;
 			}
 		}
@@ -157,17 +171,17 @@ void deleteImage(char* filename) {
 bool convertPrompt() {
 	//Title & Background
 	drawTitle((char*) "Conversion Prompt");
-	display.setColor(VGA_WHITE);
+	display.setColor(VGA_BLACK);
 	display.setFont(smallFont);
-	display.setBackColor(127, 127, 127);
+	display.setBackColor(200, 200, 200);
 	display.print((char*)"Do you want to convert ?", CENTER, 66);
 	display.print((char*)"That proccess will create", CENTER, 105);
 	display.print((char*)"bitmap(s) out of the raw data.", CENTER, 125);
 	//Draw the buttons
 	touchButtons.deleteAllButtons();
 	touchButtons.setTextFont(bigFont);
-	touchButtons.addButton(15, 160, 140, 55, (char*) "Yes");
-	touchButtons.addButton(165, 160, 140, 55, (char*) "No");
+	touchButtons.addButton(165, 160, 140, 55, (char*) "Yes");
+	touchButtons.addButton(15, 160, 140, 55, (char*) "No");
 	touchButtons.drawButtons();
 	touchButtons.setTextFont(smallFont);
 	//Wait for touch release
@@ -200,7 +214,7 @@ void convertImage(char* filename) {
 
 	//If image is already converted, return
 	if (exists) {
-		drawMessage((char*) "Image is already converted!");
+		showFullMessage((char*) "Image is already converted!");
 		delay(500);
 		strcpy(&filename[14], ".DAT");
 		return;
@@ -213,7 +227,7 @@ void convertImage(char* filename) {
 	}
 
 	//Show convert message
-	drawMessage((char*) "Converting image to BMP..");
+	showFullMessage((char*) "Converting image to BMP..");
 	delay(500);
 
 	//Display on screen
@@ -221,8 +235,8 @@ void convertImage(char* filename) {
 
 	//Save image
 	saveDisplayImage(filename);
-	drawMessage((char*) "Image converted !");
-	delay(500);
+	showFullMessage((char*) "Image converted !");
+	delay(1000);
 	strcpy(&filename[14], ".DAT");
 }
 
@@ -240,20 +254,19 @@ void convertVideo(char* dirname) {
 	endAltClockline();
 	//If video is already converted, return
 	if (exists) {
-		drawMessage((char*) "Video is already converted!");
+		showFullMessage((char*) "Video is already converted!");
 		delay(500);
 		return;
 	}
 	//If the user does not want to convert the video, return
 	if (!convertPrompt())
 		return;
-	//Convert
-	drawMessage((char*) "Converting video to BMP..");
-	delay(500);
+	//Show convert message
+	showFullMessage((char*) "Converting video to BMP..");
+	delay(1000);
+	//Convert image
 	videoSave = true;
-	attachInterrupt(pin_button, buttonIRQ, RISING);
 	proccessVideoFrames(frames, dirname);
-	detachInterrupt(pin_button);
 	videoSave = false;
 }
 

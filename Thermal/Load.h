@@ -1,8 +1,20 @@
 /*
-* Load images and videos from the internal storage
+*
+* LOAD - Load images and videos from the internal storage
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
 
 /* Defines */
+
 #define lepton2_small 9621
 #define lepton2_big 10005
 #define lepton3_small 38421
@@ -109,7 +121,7 @@ void loadBMPImage(char* filename) {
 		//Draw on the screen
 		display.drawBitmap(0, i * 60, 320, 60, image);
 	}
-	
+
 	//Close data file
 	sdFile.close();
 	//Switch clock back
@@ -154,7 +166,7 @@ void loadRawData(char* filename, char* dirname) {
 	}
 	//Invalid data
 	else {
-		drawMessage((char*) "Invalid image size !");
+		showFullMessage((char*) "Invalid image size !");
 		sdFile.close();
 		endAltClockline();
 		return;
@@ -188,7 +200,7 @@ void loadRawData(char* filename, char* dirname) {
 
 	//Read calibration offset
 	for (int i = 0; i < 4; i++)
-			farray[i] = sdFile.read();
+		farray[i] = sdFile.read();
 	calOffset = bytesToFloat(farray);
 	//Read calibration slope
 	for (int i = 0; i < 4; i++)
@@ -215,7 +227,7 @@ void loadRawData(char* filename, char* dirname) {
 /* Loads an image from the SDCard and prints it on screen */
 void openImage(char* filename, byte* choice) {
 	//Show message on screen
-	drawMessage((char*) "Please wait, image is loading..");	
+	showFullMessage((char*) "Please wait, image is loading..");
 	//Display raw data
 	if (filename[15] == 'D') {
 		//Load Raw data
@@ -229,14 +241,14 @@ void openImage(char* filename, byte* choice) {
 	}
 	//Unsupported file type
 	else {
-		drawMessage((char*) "Unsupported file type!");
+		showFullMessage((char*) "Unsupported file type!");
 		delay(1000);
 		return;
 	}
 	//Create string for time and date
-	char nameStr[20] = { 
+	char nameStr[20] = {
 		//Day
-		filename[6], filename[7], '.', 
+		filename[6], filename[7], '.',
 		//Month
 		filename[4], filename[5], '.',
 		//Year
@@ -250,8 +262,9 @@ void openImage(char* filename, byte* choice) {
 	};
 	//Display GUI
 	displayGUI(imgCount, nameStr);
+
 	//Wait for touch press
-	while (1) {
+	while (true) {
 		if (loadTouchHandler(true, filename, choice, imgCount))
 			break;
 	}
@@ -284,12 +297,14 @@ uint16_t getVideoFrameNumber(char* dirname) {
 	return videoCounter;
 }
 
-
+/* Play a video from the internal storage */
 void playVideo(char* dirname, byte* choice) {
 	//Help variables
 	uint16_t numberOfFrames = getVideoFrameNumber(dirname);
 	char filename[] = "00000.DAT";
 	char buffer[14];
+
+	//Play forever
 	while (true) {
 		//Go through the frames
 		for (int i = 0; i < numberOfFrames; i++) {
@@ -306,7 +321,7 @@ void playVideo(char* dirname, byte* choice) {
 			//Display Raw Data
 			displayRawData();
 			//Create string
-			sprintf(buffer, "%5d / %-5d", i+1, numberOfFrames);
+			sprintf(buffer, "%5d / %-5d", i + 1, numberOfFrames);
 			//Display GUI
 			displayGUI(imgCount, buffer);
 			//Wait for touch press
@@ -326,14 +341,14 @@ bool yearChoose(char* filename) {
 		//Check if the yearStorage is at least 2016
 		if (yearCheck < 0) {
 			//if it is not, return to main menu with error message
-			drawMessage((char*) "The year must be >= 2016!");
+			showFullMessage((char*) "The year must be >= 2016!");
 			delay(1000);
 			return true;
 			//Check if yearStorage is smaller than 2064 - unlikely the Thermocam is still in use then !
 		}
 		else if (yearCheck > 49) {
 			//if it is not, return to main menu with error message
-			drawMessage((char*) "The year must be < 2064 !");
+			showFullMessage((char*) "The year must be < 2064 !");
 			delay(1000);
 			return true;
 			//Add yearStorage to the array if passes the checks
@@ -666,7 +681,7 @@ void checkFileEnding(bool* check, char* filename) {
 				strcpy(&filename[14], ".DAT");
 				sdFile.close();
 				//Check if it is a file
-				sdFile.open(filename, O_READ);				
+				sdFile.open(filename, O_READ);
 				if (sdFile.isFile())
 					*check = false;
 				//Open the old file
@@ -739,6 +754,7 @@ void searchFiles() {
 	char filename[20];
 	//Start SD Transmission
 	startAltClockline(true);
+
 	//Get filenames from SD Card - one after another and a maximum of maxFiles
 	while (imgCount < maxFiles && sdFile.openNext(sd.vwd(), O_READ)) {
 		//Either folder for video or file with specific size for single image
@@ -768,7 +784,7 @@ void searchFiles() {
 				else {
 					endAltClockline();
 					//Display an error message
-					drawMessage((char*) "Maximum number of files exceeded!");
+					showFullMessage((char*) "Maximum number of files exceeded!");
 					delay(1000);
 					//And return to the main menu
 					mainMenu();
@@ -779,6 +795,7 @@ void searchFiles() {
 		//Close the file
 		sdFile.close();
 	}
+
 	//End SD Transmission
 	endAltClockline();
 }
@@ -908,6 +925,19 @@ void loadAlloc() {
 	secondStorage = (byte*)calloc(maxFiles, sizeof(byte));
 }
 
+/* Change settings for load menu */
+void loadSettings() {
+	//Set calibration status to manual
+	calStatus = cal_manual;
+	//Do not show additional information that are not required
+	batteryEnabled = false;
+	dateEnabled = false;
+	timeEnabled = false;
+	storageEnabled = false;
+	minMaxPoints = minMaxPoints_disabled;
+	hotColdMode = hotColdMode_disabled;
+}
+
 /* De-Alloc space for the different arrays*/
 void loadDeAlloc() {
 	free(yearStorage);
@@ -922,7 +952,7 @@ void loadDeAlloc() {
 void loadThermal() {
 	//Old hardware
 	if (mlx90614Version == mlx90614Version_old) {
-		drawMessage((char*) "Checking SD card..");
+		showFullMessage((char*) "Checking SD card..");
 		if (!checkSDCard()) {
 			mainMenu();
 			return;
@@ -930,6 +960,7 @@ void loadThermal() {
 	}
 	//Store the filename
 	char filename[20];
+
 	//Save old settings
 	uint16_t old_minTemp = minTemp;
 	uint16_t old_maxTemp = maxTemp;
@@ -937,113 +968,118 @@ void loadThermal() {
 	byte old_calStatus = calStatus;
 	float old_calOffset = calOffset;
 	float old_calSlope = calSlope;
-	//Set calibration status to manual
-	calStatus = cal_manual;
-	//Do not show additional information that are not required
-	batteryEnabled = false;
-	dateEnabled = false;
-	timeEnabled = false;
-	storageEnabled = false;
-	minMaxPoints = minMaxPoints_disabled;
-	hotColdMode = hotColdMode_disabled;
+
 	//Load message
-	drawMessage((char*) "Please wait..");
+	showFullMessage((char*) "Please wait..");
+	//Change settings
+	loadSettings();
 	//Alloc space
 	loadAlloc();
 	//Clear all previous data
 	clearData();
 	//Search files
 	searchFiles();
+
+	//If there are no images or videos, return
 	if (imgCount == 0) {
-		drawMessage((char*) "No images/videos found!");
+		showFullMessage((char*) "No images/videos found!");
 		delay(1000);
+		return;
 	}
-	//If there are images
-	else {
-		//Open the latest file
-		int pos = imgCount - 1;
-		findFile(filename, false, true, &pos);
-		bool exit = false;
-		byte choice;
-		//Main loop
-		while (true) {
-			//Load image
-			if (isImage(filename))
-				openImage(filename, &choice);
-			//Play video
-			else
-				playVideo(filename, &choice);
-			//Touch actions
-			switch (choice) {
-				//Find
-			case 1:
-				//If there is only one image
-				if (imgCount == 1) {
-					drawMessage((char*) "Only one image available");
-					delay(1000);
-					break;
-				}
-				//Clear all previous data
-				clearData();
-				//Search files
-				searchFiles();
-				//Let the user choose a new file
-				chooseFile(filename);
-				isImage(filename);
-				char compare[20];
-				strncpy(compare, filename, 20);
-				//Find the new file position
-				findFile(filename, false, true, &pos, compare);
-				break;
-				//Delete image
-			case 2:
-				//Clear all previous data
-				clearData();
-				//Search files
-				searchFiles();
-				//If there are no files left, return
-				if (imgCount == 0) {
-					drawMessage((char*) "No images/videos found!");
-					delay(1000);
-					exit = true;
-				}
-				//Decrease by one if the last image/video was deleted
-				if (pos > (imgCount - 1))
-					pos = imgCount - 1;
-				//Find the name of the next file
-				findFile(filename, false, true, &pos);
-				break;
-				//Previous image
-			case 3:
-				if (!findFile(filename, true, false)) {
-					findFile(filename, true, true);
-					pos = 0;
-				}
-				else
-					pos++;
-				break;
-				//Next image
-			case 4:
-				if (pos == 0)
-					pos = imgCount - 1;
-				else
-					pos--;
-				findFile(filename, false, true, &pos);
-				break;
-				//Exit
-			case 5:
-				exit = true;
+
+	//Open the latest file
+	int pos = imgCount - 1;
+	findFile(filename, false, true, &pos);
+	bool exit = false;
+	byte choice;
+	//Main loop
+	while (true){
+
+		//Load image
+		if (isImage(filename))
+			openImage(filename, &choice);
+		//Play video
+		else
+			playVideo(filename, &choice);
+
+		//Touch actions
+		switch (choice) {
+			//Find
+		case 1:
+			//If there is only one image
+			if (imgCount == 1) {
+				showFullMessage((char*) "Only one image available");
+				delay(1000);
 				break;
 			}
-			//Leave
-			if (exit)
-				break;
+			//Clear all previous data
+			clearData();
+			//Search files
+			searchFiles();
+			//Let the user choose a new file
+			chooseFile(filename);
+			isImage(filename);
+			char compare[20];
+			strncpy(compare, filename, 20);
+			//Find the new file position
+			findFile(filename, false, true, &pos, compare);
+			break;
+
+			//Delete image
+		case 2:
+			//Clear all previous data
+			clearData();
+			//Search files
+			searchFiles();
+			//If there are no files left, return
+			if (imgCount == 0) {
+				showFullMessage((char*) "No images/videos found!");
+				delay(1000);
+				exit = true;
+			}
+			//Decrease by one if the last image/video was deleted
+			if (pos > (imgCount - 1))
+				pos = imgCount - 1;
+			//Find the name of the next file
+			findFile(filename, false, true, &pos);
+			break;
+
+			//Previous image
+		case 3:
+			if (!findFile(filename, true, false)) {
+				findFile(filename, true, true);
+				pos = 0;
+			}
+			else
+				pos++;
+			break;
+
+			//Next image
+		case 4:
+			if (pos == 0)
+				pos = imgCount - 1;
+			else
+				pos--;
+			findFile(filename, false, true, &pos);
+			break;
+
+			//Exit
+		case 5:
+			exit = true;
+			break;
 		}
+
+		//Leave
+		if (exit)
+			break;
 	}
+
 	//Display message
-	drawMessage((char*)"Returning to live mode..");
+	showFullMessage((char*)"Returning to live mode..");
+
 	//Deallocate space
 	loadDeAlloc();
+
 	//Restore old settings from variables
 	minTemp = old_minTemp;
 	maxTemp = old_maxTemp;
@@ -1051,6 +1087,7 @@ void loadThermal() {
 	calStatus = old_calStatus;
 	calOffset = old_calOffset;
 	calSlope = old_calSlope;
+
 	//Restore the rest from EEPROM
 	readEEPROM();
 }

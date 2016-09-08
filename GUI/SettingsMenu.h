@@ -1,166 +1,423 @@
 /*
-* Settings menu to adjust settings
+*
+* SETTINGS MENU - Adjust different on-device settings
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
 
+/* Methods */
 
-/* Draws a loading box for the combined image */
-void adjustCombinedLoading() {
-	//Fill replacement
-	display.setColor(VGA_WHITE);
-	display.fillRect(80, 50, 240, 170);
-	//Draw the border for the preview image
-	display.setColor(VGA_BLACK);
-	display.setBackColor(VGA_WHITE);
-	display.print((char*) "Please wait..", CENTER, 100);
+/* Draw the GUI elements for the adjust combined menu */
+void adjustCombinedGUI(bool firstStart = false) {
+	//Color for elements
+	setTextColor();
+	//Down arrow
+	display.drawLine(149, 225, 159, 235);
+	display.drawLine(150, 225, 160, 235);
+	display.drawLine(151, 225, 161, 235);
+	display.drawLine(159, 235, 169, 225);
+	display.drawLine(160, 235, 170, 225);
+	display.drawLine(161, 235, 171, 225);
+	//Left arrow
+	display.drawLine(15, 109, 5, 119);
+	display.drawLine(15, 110, 5, 120);
+	display.drawLine(15, 111, 5, 121);
+	display.drawLine(5, 119, 15, 129);
+	display.drawLine(5, 120, 15, 130);
+	display.drawLine(5, 121, 15, 131);
+	//Up arrow
+	display.drawLine(149, 15, 159, 5);
+	display.drawLine(150, 15, 160, 5);
+	display.drawLine(151, 15, 161, 5);
+	display.drawLine(159, 5, 169, 15);
+	display.drawLine(160, 5, 170, 15);
+	display.drawLine(161, 5, 171, 15);
+	//Right arrow
+	display.drawLine(305, 109, 315, 119);
+	display.drawLine(305, 110, 315, 120);
+	display.drawLine(305, 111, 315, 121);
+	display.drawLine(315, 119, 305, 129);
+	display.drawLine(315, 120, 305, 130);
+	display.drawLine(315, 121, 305, 131);
+	//Decrease
+	display.drawLine(5, 224, 25, 224);
+	display.drawLine(5, 225, 25, 225);
+	display.drawLine(5, 226, 25, 226);
+	//Increase
+	display.drawLine(5, 14, 25, 14);
+	display.drawLine(5, 15, 25, 15);
+	display.drawLine(5, 16, 25, 16);
+	display.drawLine(14, 5, 14, 25);
+	display.drawLine(15, 5, 15, 25);
+	display.drawLine(16, 5, 16, 25);
+	//In first start, do not print the close symbol
+	if (!firstStart) {
+		//Color for close
+		display.setColor(255, 0, 0);
+		//Close button
+		display.drawLine(294, 5, 314, 25);
+		display.drawLine(295, 5, 315, 25);
+		display.drawLine(296, 5, 316, 25);
+		display.drawLine(294, 25, 314, 5);
+		display.drawLine(295, 25, 315, 5);
+		display.drawLine(296, 25, 316, 5);
+	}
+	//Color for confirm
+	display.setColor(0, 255, 0);
+	//Confirm button
+	display.drawLine(294, 225, 304, 235);
+	display.drawLine(295, 225, 305, 235);
+	display.drawLine(296, 225, 306, 235);
+	display.drawLine(304, 235, 314, 215);
+	display.drawLine(305, 235, 315, 215);
+	display.drawLine(306, 235, 316, 215);
 }
 
-/* Touch handler for the adjust combined menu */
-void adjustCombinedMenuHandler() {
-	//Touch handler
+/* Refresh the screen content in adjust combined menu */
+void adjustCombinedRefresh(bool firstStart = false) {
+	//Display the preview image
+	createVisCombImg();
+	display.writeScreen(image);
+	//Display the GUI
+	adjustCombinedGUI(firstStart);
+}
+
+/* Shows on the screen that is refreshes */
+void adjustCombinedLoading() {
+	//Set Text Color
+	setTextColor();
+	//set Background transparent
+	display.setBackColor(VGA_TRANSPARENT);
+	//Give the user a hint that it tries to save
+	display.setFont(bigFont);
+	//Show text
+	display.print((char*) "Please wait..", CENTER, 110);
+	//Return to small font
+	display.setFont(smallFont);
+}
+
+/* Switch the current preset menu item */
+void adjustCombinedPresetSaveString(int pos) {
+	char* text = (char*) "";
+	switch (pos) {
+	case 0:
+		text = (char*) "Temporary";
+		break;
+	case 1:
+		text = (char*) "Preset 1";
+		break;
+	case 2:
+		text = (char*) "Preset 2";
+		break;
+	case 3:
+		text = (char*) "Preset 3";
+		break;
+	}
+	mainMenuSelection(text);
+}
+
+/* Menu to save the adjust combined settings to a preset */
+bool adjustCombinedPresetSaveMenu() {
+	//Save the current position inside the menu
+	byte menuPos = 0;
+	//Background
+	mainMenuBackground();
+	//Title
+	mainMenuTitle((char*) "Select Preset");
+	//Draw the selection menu
+	drawSelectionMenu();
+	//Draw the current item
+	adjustCombinedPresetSaveString(menuPos);
+	//Save the current position inside the menu
 	while (true) {
-		//Check for touch
+		//Touch screen pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
+			//SELECT
+			if (pressedButton == 3) {
+				switch (menuPos) {
+					//Temporary
+				case 0:
+					EEPROM.write(eeprom_adjCombPreset, adjComb_temporary);
+					break;
+					//Preset 1
+				case 1:
+					EEPROM.write(eeprom_adjComb1Left, adjCombLeft);
+					EEPROM.write(eeprom_adjComb1Right, adjCombRight);
+					EEPROM.write(eeprom_adjComb1Up, adjCombUp);
+					EEPROM.write(eeprom_adjComb1Down, adjCombDown);
+					EEPROM.write(eeprom_adjComb1Factor, round(adjCombFactor * 100.0));
+					EEPROM.write(eeprom_adjComb1Set, eeprom_setValue);
+					EEPROM.write(eeprom_adjCombPreset, adjComb_preset1);
+					break;
+					//Preset 2
+				case 2:
+					EEPROM.write(eeprom_adjComb2Left, adjCombLeft);
+					EEPROM.write(eeprom_adjComb2Right, adjCombRight);
+					EEPROM.write(eeprom_adjComb2Up, adjCombUp);
+					EEPROM.write(eeprom_adjComb2Down, adjCombDown);
+					EEPROM.write(eeprom_adjComb2Factor, round(adjCombFactor * 100.0));
+					EEPROM.write(eeprom_adjComb2Set, eeprom_setValue);
+					EEPROM.write(eeprom_adjCombPreset, adjComb_preset2);
+					break;
+					//Preset 3
+				case 3:
+					EEPROM.write(eeprom_adjComb3Left, adjCombLeft);
+					EEPROM.write(eeprom_adjComb3Right, adjCombRight);
+					EEPROM.write(eeprom_adjComb3Up, adjCombUp);
+					EEPROM.write(eeprom_adjComb3Down, adjCombDown);
+					EEPROM.write(eeprom_adjComb3Factor, round(adjCombFactor * 100.0));
+					EEPROM.write(eeprom_adjComb3Set, eeprom_setValue);
+					EEPROM.write(eeprom_adjCombPreset, adjComb_preset3);
+					break;
+				}
+				return true;
+			}
+			//BACKWARD
+			else if (pressedButton == 0) {
+				if (menuPos > 0)
+					menuPos--;
+				else if (menuPos == 0)
+					menuPos = 3;
+			}
+			//FORWARD
+			else if (pressedButton == 1) {
+				if (menuPos < 3)
+					menuPos++;
+				else if (menuPos == 3)
+					menuPos = 0;
+			}
+			//BACK
+			else if (pressedButton == 2)
+				return false;
+			//Change the menu name
+			adjustCombinedPresetSaveString(menuPos);
+		}
+	}
+}
+
+/* Touch handler for the new adjust combined menu */
+void adjustCombinedNewMenuHandler(bool firstStart = false) {
+	//Touch handler
+	while (true) {
+		//Touch pressed
+		if (touch.touched() == true) {
+			//Get coordinates
+			TS_Point p = touch.getPoint();
+			uint16_t x = p.x;
+			uint16_t y = p.y;
 			//Increment
-			if (pressedButton == 0) {
+			if ((x >= 0) && (x <= 50) && (y >= 0) && (y <= 50)) {
 				if (adjCombFactor < 1.0) {
 					adjustCombinedLoading();
 					adjCombFactor += 0.05;
-					createVisCombImg();
-					display.drawBitmap(80, 50, 160, 120, image, 1);
+					adjustCombinedRefresh();
 				}
 			}
 			//Decrement
-			else if (pressedButton == 1) {
+			else if ((x >= 0) && (x <= 50) && (y >= 190) && (y <= 240)) {
 				if (adjCombFactor > 0.5) {
 					adjustCombinedLoading();
 					adjCombFactor -= 0.05;
-					createVisCombImg();
-					display.drawBitmap(80, 50, 160, 120, image, 1);
+					adjustCombinedRefresh();
 				}
 			}
 			//Left
-			else if (pressedButton == 2) {
+			else if ((x >= 0) && (x <= 50) && (y >= 95) && (y <= 145)) {
 				if (adjCombLeft < 10) {
 					adjustCombinedLoading();
 					if (adjCombRight > 0)
 						adjCombRight -= 1;
 					else
 						adjCombLeft += 1;
-					createVisCombImg();
-					display.drawBitmap(80, 50, 160, 120, image, 1);
+					adjustCombinedRefresh();
 				}
 			}
 			//Right
-			else if (pressedButton == 3) {
+			else if ((x >= 270) && (x <= 320) && (y >= 95) && (y <= 145)) {
 				if (adjCombRight < 10) {
 					adjustCombinedLoading();
 					if (adjCombLeft > 0)
 						adjCombLeft -= 1;
 					else
 						adjCombRight += 1;
-					createVisCombImg();
-					display.drawBitmap(80, 50, 160, 120, image, 1);
+					adjustCombinedRefresh();
 				}
 			}
 			//Up
-			else if (pressedButton == 4) {
+			else if ((x >= 135) && (x <= 185) && (y >= 0) && (y <= 50)) {
 				if (adjCombUp < 10) {
 					adjustCombinedLoading();
 					if (adjCombDown > 0)
 						adjCombDown -= 1;
 					else
 						adjCombUp += 1;
-					createVisCombImg();
-					display.drawBitmap(80, 50, 160, 120, image, 1);
+					adjustCombinedRefresh();
 				}
 			}
 			//Down
-			else if (pressedButton == 5) {
+			else if ((x >= 135) && (x <= 185) && (y >= 190) && (y <= 240)) {
 				if (adjCombDown < 10) {
 					adjustCombinedLoading();
 					if (adjCombUp > 0)
 						adjCombUp -= 1;
 					else
 						adjCombDown += 1;
-					createVisCombImg();
-					display.drawBitmap(80, 50, 160, 120, image, 1);
+					adjustCombinedRefresh();
 				}
 			}
 			//OK
-			else if (pressedButton == 6) {
-				//Save values to EEPROM
-				EEPROM.write(eeprom_adjCombLeft, adjCombLeft);
-				EEPROM.write(eeprom_adjCombRight, adjCombRight);
-				EEPROM.write(eeprom_adjCombUp, adjCombUp);
-				EEPROM.write(eeprom_adjCombDown, adjCombDown);
-				EEPROM.write(eeprom_adjCombFactor, round(adjCombFactor * 100.0));
-				EEPROM.write(eeprom_adjCombSet, eeprom_setValue);
-				//Go back
-				return;
+			else if ((x >= 270) && (x <= 320) && (y >= 190) && (y <= 240)) {
+				//Preset chooser
+				if (!firstStart) {
+					if (adjustCombinedPresetSaveMenu())
+						return;
+					else
+						adjustCombinedRefresh();
+				}
+				//First start, save as preset 1
+				else {
+					EEPROM.write(eeprom_adjComb1Left, adjCombLeft);
+					EEPROM.write(eeprom_adjComb1Right, adjCombRight);
+					EEPROM.write(eeprom_adjComb1Up, adjCombUp);
+					EEPROM.write(eeprom_adjComb1Down, adjCombDown);
+					EEPROM.write(eeprom_adjComb1Factor, round(adjCombFactor * 100.0));
+					EEPROM.write(eeprom_adjComb1Set, eeprom_setValue);
+					EEPROM.write(eeprom_adjCombPreset, adjComb_preset1);
+					return;
+				}
 			}
-			//Reset
-			else if (pressedButton == 7) {
-				adjustCombinedLoading();
-				adjCombLeft = 0;
-				adjCombRight = 0;
-				adjCombUp = 0;
-				adjCombDown = 0;
-				adjCombFactor = 1.0;
-				createVisCombImg();
-				display.drawBitmap(80, 50, 160, 120, image, 1);
+			//Exit without saving, not in first start
+			else if ((x >= 270) && (x <= 320) && (y >= 0) && (y <= 50) && (!firstStart)) {
+				readAdjustCombined();
+				return;
 			}
 		}
 	}
 }
 
-/* Adjust combined menu */
-void adjustCombinedMenu(bool firstStart) {
-	//Draw the title
-	if (firstStart)
-		display.fillScr(127, 127, 127);
-	else {
-		display.setColor(127, 127, 127);
-		display.fillRoundRect(6, 6, 314, 234);
-	}
-	display.setFont(bigFont);
-	display.setBackColor(127, 127, 127);
-	display.setColor(VGA_WHITE);
-	display.print((char*) "Align combined", CENTER, 18);
-	display.setFont(smallFont);
-	//Buttons
-	touchButtons.deleteAllButtons();
-	touchButtons.setTextFont(smallFont);
-	touchButtons.addButton(15, 180, 55, 40, (char*) "Inc.");
-	touchButtons.addButton(250, 180, 55, 40, (char*) "Dec.");
-	touchButtons.addButton(15, 115, 55, 55, (char*) "Left");
-	touchButtons.addButton(250, 115, 55, 55, (char*) "Right");
-	touchButtons.addButton(15, 50, 55, 55, (char*) "Up");
-	touchButtons.addButton(250, 50, 55, 55, (char*) "Down");
-	touchButtons.addButton(165, 180, 75, 40, (char*) "OK");
-	touchButtons.addButton(80, 180, 75, 40, (char*) "Reset");
-	touchButtons.drawButtons();
-	//Fill replacement
-	adjustCombinedLoading();
-	//Draw Border
-	display.drawRect(79, 49, 241, 171);
+/* Adjust combined new menu */
+void adjustCombinedNewMenu(bool firstStart = false) {
+	//Show loading message
+	showFullMessage((char*)"Please wait..");
 	//Prepare the preview image
 	byte displayMode_old = displayMode;
 	displayMode = displayMode_combined;
 	combinedDecomp = true;
 	changeCamRes(VC0706_160x120);
-	createVisCombImg();
-	//Display the preview image
-	display.drawBitmap(80, 50, 160, 120, image, 1);
-	//Run the handler
-	adjustCombinedMenuHandler();
+	//Load the defaults
+	adjCombDown = 0;
+	adjCombUp = 0;
+	adjCombLeft = 0;
+	adjCombRight = 0;
+	adjCombFactor = 1.0;
+	//Show the preview image
+	adjustCombinedRefresh(firstStart);
+	//Run the handler and 
+	adjustCombinedNewMenuHandler(firstStart);
+	//Show message
+	showFullMessage((char*) "Please wait..");
 	//Restore the old mode
+	displayMode = displayMode_old;
 	if (displayMode != displayMode_combined)
 		combinedDecomp = false;
 	if (displayMode == displayMode_thermal)
 		changeCamRes(VC0706_640x480);
-	displayMode = displayMode_old;
 }
+
+/* Switch the current temperature menu item */
+void adjustCombinedString(int pos) {
+	char* text = (char*) "";
+	switch (pos) {
+	case 0:
+		text = (char*) "New";
+		break;
+	case 1:
+		text = (char*) "Preset 1";
+		break;
+	case 2:
+		text = (char*) "Preset 2";
+		break;
+	case 3:
+		text = (char*) "Preset 3";
+		break;
+	}
+	mainMenuSelection(text);
+}
+
+/* Menu to save the adjust combined settings to a preset */
+bool adjustCombinedMenu() {
+	//Save the current position inside the menu
+	byte adjCombMenuPos = EEPROM.read(eeprom_adjCombPreset);
+	//Background
+	mainMenuBackground();
+	//Title
+	mainMenuTitle((char*) "Adjust Combined");
+	//Draw the selection menu
+	drawSelectionMenu();
+	//Draw the current item
+	adjustCombinedString(adjCombMenuPos);
+	//Save the current position inside the menu
+	while (true) {
+		//Touch screen pressed
+		if (touch.touched() == true) {
+			int pressedButton = touchButtons.checkButtons(true);
+			//SELECT
+			if (pressedButton == 3) {
+				switch (adjCombMenuPos) {
+					//New
+				case 0:
+					adjustCombinedNewMenu();
+					return true;
+					break;
+					//Load Preset 1
+				case 1:
+					EEPROM.write(eeprom_adjCombPreset, adjComb_preset1);
+					break;
+					//Load Preset 2
+				case 2:
+					EEPROM.write(eeprom_adjCombPreset, adjComb_preset2);
+					break;
+					//Load Preset 3
+				case 3:
+					EEPROM.write(eeprom_adjCombPreset, adjComb_preset3);
+					break;
+				}
+				//Read config from EEPROM
+				readAdjustCombined();
+				return true;
+			}
+			//BACKWARD
+			else if (pressedButton == 0) {
+				if (adjCombMenuPos > 0)
+					adjCombMenuPos--;
+				else if (adjCombMenuPos == 0)
+					adjCombMenuPos = 3;
+			}
+			//FORWARD
+			else if (pressedButton == 1) {
+				if (adjCombMenuPos < 3)
+					adjCombMenuPos++;
+				else if (adjCombMenuPos == 3)
+					adjCombMenuPos = 0;
+			}
+			//BACK
+			else if (pressedButton == 2)
+				return false;
+			//Change the menu name
+			adjustCombinedString(adjCombMenuPos);
+		}
+	}
+}
+
 
 /* Second Menu */
 void secondMenu(bool firstStart) {
@@ -541,7 +798,7 @@ void timeAndDateMenuHandler(bool firstStart = false) {
 			else if (pressedButton == 2) {
 				if (firstStart) {
 					if (year() < 2016) {
-						drawMessage((char*) "Year must be >= 2016 !");
+						showFullMessage((char*) "Year must be >= 2016 !");
 						delay(1000);
 						timeAndDateMenu(true);
 					}
@@ -671,7 +928,7 @@ void convertImageMenu(bool firstStart = false) {
 void formatStorage() {
 	//Old HW generation, check SD card
 	if (mlx90614Version == mlx90614Version_old) {
-		drawMessage((char*) "Checking SD card..");
+		showFullMessage((char*) "Checking SD card..");
 		if (!checkSDCard()) {
 			storageMenu();
 			return;
@@ -679,17 +936,17 @@ void formatStorage() {
 	}
 	//Title & Background
 	drawTitle((char*) "Storage");
-	display.setColor(VGA_WHITE);
+	display.setColor(VGA_BLACK);
 	display.setFont(smallFont);
-	display.setBackColor(127, 127, 127);
+	display.setBackColor(200, 200, 200);
 	display.print((char*)"Do you really want to format ?", CENTER, 66);
 	display.print((char*)"This will delete all images", CENTER, 105);
 	display.print((char*)"and videos on the internal storage.", CENTER, 125);
 	//Draw the buttons
 	touchButtons.deleteAllButtons();
 	touchButtons.setTextFont(bigFont);
-	touchButtons.addButton(15, 160, 140, 55, (char*) "No");
 	touchButtons.addButton(165, 160, 140, 55, (char*) "Yes");
+	touchButtons.addButton(15, 160, 140, 55, (char*) "No");
 	touchButtons.drawButtons();
 	touchButtons.setTextFont(smallFont);
 	//Touch handler
@@ -698,16 +955,16 @@ void formatStorage() {
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
 			//YES
-			if (pressedButton == 1) {
-				drawMessage((char*) "Formatting storage..");
+			if (pressedButton == 0) {
+				showFullMessage((char*) "Formatting storage..", true);
 				formatCard();
-				drawMessage((char*) "Format finished !");
+				showFullMessage((char*) "Format finished !", true);
 				delay(1000);
 				refreshFreeSpace();
 				break;
 			}
 			//NO
-			else if (pressedButton == 0) {
+			else if (pressedButton == 1) {
 				break;
 			}
 		}
@@ -862,8 +1119,8 @@ void screenTimeoutMenu() {
 	drawTitle((char*) "Screen timeout");
 	touchButtons.deleteAllButtons();
 	touchButtons.addButton(20, 60, 130, 70, (char*) "Disabled");
-	touchButtons.addButton(170, 60, 130, 70, (char*) "10 Min.");
-	touchButtons.addButton(20, 150, 130, 70, (char*) "30 Min.");
+	touchButtons.addButton(170, 60, 130, 70, (char*) "5 Min.");
+	touchButtons.addButton(20, 150, 130, 70, (char*) "20 Min.");
 	touchButtons.addButton(170, 150, 130, 70, (char*) "Back");
 	touchButtons.drawButtons();
 	//Set current one active

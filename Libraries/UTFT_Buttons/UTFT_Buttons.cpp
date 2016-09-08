@@ -7,8 +7,8 @@ UTFT_Buttons::UTFT_Buttons(UTFT *ptrUTFT, Touchscreen *ptrTouch) {
 	_color_text = VGA_WHITE;
 	_color_text_inactive = VGA_GRAY;
 	_color_background = VGA_BLUE;
-	_color_border = VGA_WHITE;
-	_color_hilite = VGA_RED;
+	_color_border = VGA_BLACK;
+	_color_hilite = VGA_BLUE;
 	_font_text = NULL;
 	_font_symbol = NULL;
 	setButtonColors(VGA_BLACK, VGA_BLACK, VGA_GRAY, VGA_RED,
@@ -86,9 +86,12 @@ void UTFT_Buttons::drawButton(int buttonID) {
 				_UTFT->setColor(_color_text_inactive);
 			else
 				_UTFT->setColor(_color_border);
-			_UTFT->drawRect(buttons[buttonID].pos_x, buttons[buttonID].pos_y,
+			_UTFT->drawRoundRect(buttons[buttonID].pos_x, buttons[buttonID].pos_y,
 				buttons[buttonID].pos_x + buttons[buttonID].width,
 				buttons[buttonID].pos_y + buttons[buttonID].height);
+			_UTFT->drawRoundRect(buttons[buttonID].pos_x - 1, buttons[buttonID].pos_y - 1,
+				buttons[buttonID].pos_x + buttons[buttonID].width + 1,
+				buttons[buttonID].pos_y + buttons[buttonID].height + 1);
 		}
 	}
 	else {
@@ -100,6 +103,9 @@ void UTFT_Buttons::drawButton(int buttonID) {
 		_UTFT->drawRoundRect(buttons[buttonID].pos_x, buttons[buttonID].pos_y,
 			buttons[buttonID].pos_x + buttons[buttonID].width,
 			buttons[buttonID].pos_y + buttons[buttonID].height);
+		_UTFT->drawRoundRect(buttons[buttonID].pos_x - 1, buttons[buttonID].pos_y - 1,
+			buttons[buttonID].pos_x + buttons[buttonID].width + 1,
+			buttons[buttonID].pos_y + buttons[buttonID].height + 1);
 		if (buttons[buttonID].flags & BUTTON_DISABLED)
 			_UTFT->setColor(_color_text_inactive);
 		else
@@ -210,7 +216,7 @@ int UTFT_Buttons::checkButtons(bool timeout, bool fast) {
 		if (!(buttons[result].flags & BUTTON_NO_BORDER)) {
 			_UTFT->setColor(_color_hilite);
 			if (buttons[result].flags & BUTTON_BITMAP)
-				_UTFT->drawRect(buttons[result].pos_x,
+				_UTFT->drawRoundRect(buttons[result].pos_x,
 					buttons[result].pos_y,
 					buttons[result].pos_x + buttons[result].width,
 					buttons[result].pos_y + buttons[result].height);
@@ -219,10 +225,10 @@ int UTFT_Buttons::checkButtons(bool timeout, bool fast) {
 					buttons[result].pos_y,
 					buttons[result].pos_x + buttons[result].width,
 					buttons[result].pos_y + buttons[result].height);
-			_UTFT->drawRoundRect(buttons[result].pos_x + 1,
-				buttons[result].pos_y + 1,
-				buttons[result].pos_x + buttons[result].width - 1,
-				buttons[result].pos_y + buttons[result].height - 1);
+			_UTFT->drawRoundRect(buttons[result].pos_x - 1,
+				buttons[result].pos_y - 1,
+				buttons[result].pos_x + buttons[result].width + 1,
+				buttons[result].pos_y + buttons[result].height + 1);
 		}
 	}
 	if (fast) {
@@ -245,7 +251,7 @@ int UTFT_Buttons::checkButtons(bool timeout, bool fast) {
 		if (!(buttons[result].flags & BUTTON_NO_BORDER)) {
 			_UTFT->setColor(_color_border);
 			if (buttons[result].flags & BUTTON_BITMAP)
-				_UTFT->drawRect(buttons[result].pos_x,
+				_UTFT->drawRoundRect(buttons[result].pos_x,
 					buttons[result].pos_y,
 					buttons[result].pos_x + buttons[result].width,
 					buttons[result].pos_y + buttons[result].height);
@@ -254,10 +260,10 @@ int UTFT_Buttons::checkButtons(bool timeout, bool fast) {
 					buttons[result].pos_y,
 					buttons[result].pos_x + buttons[result].width,
 					buttons[result].pos_y + buttons[result].height);
-			_UTFT->drawRoundRect(buttons[result].pos_x + 1,
-				buttons[result].pos_y + 1,
-				buttons[result].pos_x + buttons[result].width - 1,
-				buttons[result].pos_y + buttons[result].height - 1);
+			_UTFT->drawRoundRect(buttons[result].pos_x - 1,
+				buttons[result].pos_y - 1,
+				buttons[result].pos_x + buttons[result].width + 1,
+				buttons[result].pos_y + buttons[result].height + 1);
 		}
 	}
 	_UTFT->setColor(_current_color);
@@ -266,7 +272,7 @@ int UTFT_Buttons::checkButtons(bool timeout, bool fast) {
 
 void UTFT_Buttons::setActive(int buttonID) {
 	int text_x, text_y;
-	_UTFT->setColor(VGA_YELLOW);
+	_UTFT->setColor(VGA_AQUA);
 	_UTFT->fillRect(buttons[buttonID].pos_x + 3, buttons[buttonID].pos_y + 3,
 		buttons[buttonID].pos_x + buttons[buttonID].width - 3,
 		buttons[buttonID].pos_y + buttons[buttonID].height - 3);
@@ -277,7 +283,7 @@ void UTFT_Buttons::setActive(int buttonID) {
 		+ buttons[buttonID].pos_x;
 	text_y = (buttons[buttonID].height / 2) - (_UTFT->getFontYsize() / 2)
 		+ buttons[buttonID].pos_y;
-	_UTFT->setBackColor(VGA_YELLOW);
+	_UTFT->setBackColor(VGA_AQUA);
 	_UTFT->print(buttons[buttonID].label, text_x, text_y);
 }
 
@@ -311,6 +317,6 @@ void UTFT_Buttons::setButtonColors(word atxt, word iatxt, word brd, word brdhi,
 	_color_text = atxt;
 	_color_text_inactive = iatxt;
 	_color_background = back;
-	_color_border = brd;
-	_color_hilite = brdhi;
+	_color_border = VGA_BLACK;
+	_color_hilite = VGA_BLUE;
 }

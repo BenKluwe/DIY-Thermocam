@@ -1,19 +1,33 @@
 /*
-* First Start Menu
+*
+* FIRST START - Menu that is displayed on the first device start
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
+
+/* Methods */
 
 /* Show welcome Screen for the first start procedure */
 void welcomeScreen() {
-	display.fillScr(127, 127, 127);
-	display.setBackColor(127, 127, 127);
-	display.setFont(bigFont);
+	display.fillScr(200, 200, 200);
+	display.setBackColor(200, 200, 200);
+	display.setFont(smallFont);
 	display.printC("Welcome to the", CENTER, 20);
-	display.printC("DIY-Thermocam", CENTER, 60, VGA_YELLOW);
+	display.setFont(bigFont);
+	display.printC("DIY-Thermocam", CENTER, 60, VGA_BLUE);
 	display.setFont(smallFont);
 	display.printC("This is the first time setup.", CENTER, 110);
 	display.printC("It will guide you through", CENTER, 140);
 	display.printC("the basic settings.", CENTER, 170);
-	display.printC("Please touch screen", CENTER, 210, VGA_YELLOW);
+	display.printC("-> Please touch screen <-", CENTER, 210, VGA_BLUE);
 	//Wait for touch press
 	while (!touch.touched());
 	//Touch release again
@@ -22,10 +36,10 @@ void welcomeScreen() {
 
 /* Shows an info screen during the first start procedure */
 void infoScreen(String* text, bool Continue) {
-	display.fillScr(127, 127, 127);
-	display.setBackColor(127, 127, 127);
+	display.fillScr(200, 200, 200);
+	display.setBackColor(200, 200, 200);
 	display.setFont(bigFont);
-	display.printC(text[0], CENTER, 20, VGA_YELLOW);
+	display.printC(text[0], CENTER, 20, VGA_BLUE);
 	display.setFont(smallFont);
 	display.printC(text[1], CENTER, 55);
 	display.printC(text[2], CENTER, 80);
@@ -34,7 +48,7 @@ void infoScreen(String* text, bool Continue) {
 	if (Continue) {
 		display.printC(text[5], CENTER, 155);
 		display.printC(text[6], CENTER, 180);
-		display.printC("Please touch screen", CENTER, 212, VGA_YELLOW);
+		display.printC("-> Please touch screen <-", CENTER, 212, VGA_BLUE);
 		//Wait for touch press
 		while (!touch.touched());
 		//Touch release again
@@ -50,12 +64,12 @@ void infoScreen(String* text, bool Continue) {
 void timeDateScreen() {
 	String text[7];
 	text[0] = "Set Time & Date";
-	text[1] = "In the next screen, you have";
-	text[2] = "to set the time and date so ";
+	text[1] = "In the next screen, you can";
+	text[2] = "set the time and date, so ";
 	text[3] = "that it matches your current";
-	text[4] = "time zone. This only has to be";
-	text[5] = "done once, as the coin cell battery";
-	text[6] = "powers the real-time-clock permanent.";
+	text[4] = "time zone. If the settings do";
+	text[5] = "not survive a reboot, check";
+	text[6] = "the coin cell battery voltage.";
 	infoScreen(text);
 	//Adjust Time & Date settings
 	setTime(12, 30, 30, 15, 6, 2016);
@@ -69,10 +83,10 @@ void timeDateScreen() {
 void tempFormatScreen() {
 	String text[7];
 	text[0] = "Set Temp. Format";
-	text[1] = "In the next screen, you have";
-	text[2] = "to set the temperature format ";
+	text[1] = "In the next screen, you can";
+	text[2] = "set the temperature format ";
 	text[3] = "for the temperature display.";
-	text[4] = "Choose either Celcius or";
+	text[4] = "Choose between Celsius or";
 	text[5] = "Fahrenheit, the conversion will";
 	text[6] = "be done automatically.";
 	infoScreen(text);
@@ -124,26 +138,20 @@ void combinedAlignmentScreen() {
 	//Set color scheme to rainbow
 	colorMap = colorMap_rainbow;
 	colorElements = 256;
-	//Reset adjustment values
-	adjCombFactor = 1.0;
-	adjCombLeft = 0;
-	adjCombRight = 0;
-	adjCombUp = 0;
-	adjCombDown = 0;
 	//Adjust combined menu
-	adjustCombinedMenu(true);
+	adjustCombinedNewMenu(true);
 }
 
 /* Setting screen for the calibration procedure */
 void calibrationScreen() {
 	String text[7];
-	text[0] = "Calibration process";
-	text[1] = "For the raw-to-absolute temp con-";
-	text[2] = "version, you have to do a calibration";
-	text[3] = "first. Point the device to different ";
-	text[4] = "hot and cold objects slowly, so that";
-	text[5] = "the objects cover both the spot sensor";
-	text[6] = "and the LWIR sensor at once.";
+	text[0] = "Calibration";
+	text[1] = "Before using the device, you need";
+	text[2] = "to calibrate it first. Point the ";
+	text[3] = "device to different hot and cold";
+	text[4] = "objects in the surrounding area";
+	text[5] = "slowly, until the calibration";
+	text[6] = "process has been completed.";
 	infoScreen(text);
 	//Calibration procedure
 	calibrationProcess(true);
@@ -158,7 +166,7 @@ void firstStartComplete() {
 	text[3] = "the device by turning the";
 	text[4] = "power switch off and on again.";
 	text[5] = "Afterwards, you will be redirected";
-	text[6] = "to first start helper.";
+	text[6] = "to the first start helper.";
 	infoScreen(text, false);
 	while (true);
 }
@@ -177,17 +185,18 @@ void liveModeHelper() {
 	text[1] = "To enter the live mode menu,";
 	text[2] = "touch the screen. 'Exit' will";
 	text[3] = "bring you to the main menu.";
-	text[4] = "Pressing the pushbutton on";
+	text[4] = "Pressing the push button on";
 	text[5] = "top of the device short takes";
 	text[6] = "an image, long records a video.";
 	infoScreen(text);
-	text[1] = "The device needs one minute";
-	text[2] = "to warmup the sensor, the color-";
-	text[3] = "bar will be activated afterwards.";
-	text[4] = "If you want to lock the limits";
-	text[5] = "on the colorbar, touch the screen";
-	text[6] = "long until a message is shown.";
+	text[1] = "The device needs one minute to";
+	text[2] = "warmup the sensor, more functions";
+	text[3] = "will be activated afterwards. You";
+	text[4] = "can lock the limits or toggle dif-";
+	text[5] = "ferent temperature limits by pres-";
+	text[6] = "sing the screen long in live mode.";
 	infoScreen(text);
+	showFullMessage((char*)"Please wait..");
 	//Set EEPROM marker to complete
 	EEPROM.write(eeprom_liveHelper, eeprom_setValue);
 }
@@ -209,7 +218,7 @@ void adjustCamComplete() {
 
 /* Set the EEPROM values to default for the first time */
 void stdEEPROMSet() {
-	drawMessage((char*) "Flashing spot EEPROM settings..");
+	showFullMessage((char*) "Flashing spot EEPROM settings..");
 	//Set spot maximum temp to 380°C
 	mlx90614SetMax();
 	//Set spot minimum temp to -70°
@@ -222,11 +231,11 @@ void stdEEPROMSet() {
 	EEPROM.write(eeprom_rotationEnabled, false);
 	EEPROM.write(eeprom_spotEnabled, true);
 	EEPROM.write(eeprom_colorbarEnabled, true);
-	EEPROM.write(eeprom_batteryEnabled, false);
-	EEPROM.write(eeprom_timeEnabled, false);
-	EEPROM.write(eeprom_dateEnabled, false);
-	EEPROM.write(eeprom_pointsEnabled, false);
-	EEPROM.write(eeprom_storageEnabled, false);
+	EEPROM.write(eeprom_batteryEnabled, true);
+	EEPROM.write(eeprom_timeEnabled, true);
+	EEPROM.write(eeprom_dateEnabled, true);
+	EEPROM.write(eeprom_pointsEnabled, true);
+	EEPROM.write(eeprom_storageEnabled, true);
 	EEPROM.write(eeprom_displayMode, displayMode_thermal);
 	EEPROM.write(eeprom_textColor, textColor_white);
 	EEPROM.write(eeprom_minMaxPoints, minMaxPoints_disabled);
@@ -246,6 +255,8 @@ void stdEEPROMSet() {
 
 /* First start setup*/
 void firstStart() {
+	//Clear EEPROM
+	clearEEPROM();
 	//Welcome screen
 	welcomeScreen();
 	//Hint screen for the time and date settings

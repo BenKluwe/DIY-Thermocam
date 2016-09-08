@@ -1,5 +1,16 @@
 /*
-* Global variable declarations, that are used firmware-wide
+*
+* GLOBAL VARIABLES - Global variable declarations, that are used firmware-wide
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
 
 #include "GlobalDefines.h"
@@ -47,7 +58,7 @@ uint16_t showTemp[192];
 char saveFilename[20];
 
 //HW diagnostic information
-byte diagnostic;
+byte diagnostic = diag_ok;
 //Battery
 int8_t batPercentage;
 //MLX90614 sensor version
@@ -79,8 +90,8 @@ byte hotColdColor;
 bool convertEnabled;
 //If enabled, visual image will be saved automatically
 bool visualEnabled;
-//Automatic gain control
-bool agcEnabled;
+//Automatic mode
+bool autoMode;
 //Lock current limits
 bool limitsLocked;
 //Display rotation enabled
@@ -122,5 +133,7 @@ volatile byte imgSave;
 volatile bool videoSave;
 //Show Live Mode Menu in the next cycle
 volatile bool showMenu;
-//Release or lock limits in the next cycle
-volatile bool lockLimits;
+//Handler for a long touch press
+volatile bool longTouch;
+//Check if in serial mode
+volatile bool serialMode;

@@ -1,37 +1,23 @@
 /*
-* Main Methods to display the Graphical-User-Interface
+*
+* GUI - Main Methods to display the Graphical-User-Interface
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
+
+/* Includes */
 
 #include "Bitmaps.h"
 
-/* Draw a message on the screen */
-void drawMessage(char* message, bool small) {
-	if (!small)
-		display.fillScr(127, 127, 127);
-	else {
-		display.setColor(127, 127, 127);
-		display.fillRoundRect(6, 6, 314, 234);
-	}
-	display.setFont(smallFont);
-	display.setBackColor(127, 127, 127);
-	display.setColor(VGA_WHITE);
-	display.print(message, CENTER, 110);
-}
-
-/* Draw a title on the screen */
-void drawTitle(char* name, bool firstStart = false) {
-	if (firstStart)
-		display.fillScr(127, 127, 127);
-	else {
-		display.setColor(127, 127, 127);
-		display.fillRoundRect(6, 6, 314, 234);
-	}
-	display.setFont(bigFont);
-	display.setBackColor(127, 127, 127);
-	display.setColor(VGA_WHITE);
-	display.print(name, CENTER, 25);
-	display.setFont(smallFont);
-}
+/* Methods */
 
 /* Sets the text color to the right one */
 void setTextColor() {
@@ -52,18 +38,64 @@ void setTextColor() {
 		display.setColor(VGA_WHITE);
 }
 
+/* Shows a transparent message in live mode */
+void showTransMessage(char* msg, bool bottom) {
+	//Set Text Color
+	setTextColor();
+	//set Background transparent
+	display.setBackColor(VGA_TRANSPARENT);
+	//Give the user a hint that it tries to save
+	display.setFont(bigFont);
+	if (bottom)
+		display.print(msg, CENTER, 170);
+	else
+		display.print(msg, CENTER, 70);
+	display.setFont(smallFont);
+	//Wait some time to read the text
+	delay(1000);
+}
+
+/* Shows a full screen message */
+void showFullMessage(char* message, bool small) {
+	if (!small)
+		display.fillScr(200, 200, 200);
+	else {
+		display.setColor(200, 200, 200);
+		display.fillRoundRect(6, 6, 314, 234);
+	}
+	display.setFont(smallFont);
+	display.setBackColor(200, 200, 200);
+	display.setColor(VGA_BLACK);
+	display.print(message, CENTER, 110);
+}
+
+/* Draw a title on the screen */
+void drawTitle(char* name, bool firstStart = false) {
+	if (firstStart)
+		display.fillScr(200, 200, 200);
+	else {
+		display.setColor(200, 200, 200);
+		display.fillRoundRect(6, 6, 314, 234);
+	}
+	display.setFont(bigFont);
+	display.setBackColor(200, 200, 200);
+	display.setColor(VGA_BLACK);
+	display.print(name, CENTER, 25);
+	display.setFont(smallFont);
+}
+
 /* Shows the hadware diagnostics */
 void showDiagnostic() {
 	//Display title & background
-	display.fillScr(127, 127, 127);
+	display.fillScr(200, 200, 200);
 	display.setFont(bigFont);
-	display.setBackColor(127, 127, 127);
-	display.setColor(VGA_YELLOW);
+	display.setBackColor(200, 200, 200);
+	display.setColor(VGA_BLUE);
 	display.print((char*) "Self-diagnostic", CENTER, 10);
 	//Display hint
 	display.setFont(smallFont);
 	display.print((char*) "Fix the issues to use the device", CENTER, 220);
-	display.setColor(VGA_WHITE);
+	display.setColor(VGA_BLACK);
 	//Display hardware module names
 	display.print((char*) "Spot sensor  ", 50, 50);
 	display.print((char*) "Display      ", 50, 70);
@@ -126,17 +158,17 @@ void showSaveMessage() {
 	//Thermal only
 	if (displayMode == displayMode_thermal) {
 		if (!convertEnabled)
-			showMsg((char*) "Save Thermal Raw..");
+			showTransMessage((char*) "Save Thermal Raw..");
 		else
-			showMsg((char*) "Save Thermal BMP..");
+			showTransMessage((char*) "Save Thermal BMP..");
 	}
 	//Visual only
 	else if (displayMode == displayMode_visual) {
-		showMsg((char*) "Save Visual BMP..");
+		showTransMessage((char*) "Save Visual BMP..");
 	}
 	//Combined
 	else if (displayMode == displayMode_combined) {
-		showMsg((char*) "Save Combined BMP..");
+		showTransMessage((char*) "Save Combined BMP..");
 	}
 	//Set marker to create image
 	imgSave = imgSave_create;
@@ -145,8 +177,8 @@ void showSaveMessage() {
 /* Draw a BigFont Text in the center of a menu*/
 void drawCenterElement(int element) {
 	display.setFont(bigFont);
-	display.setColor(VGA_WHITE);
-	display.setBackColor(127, 127, 127);
+	display.setColor(VGA_BLACK);
+	display.setBackColor(200, 200, 200);
 	display.printNumI(element, CENTER, 80, 2, '0');
 	display.setFont(smallFont);
 }
@@ -256,7 +288,7 @@ void displayTime() {
 	}
 }
 
-/*Include section */
+/* More includes */
 #include "MainMenu.h"
 #include "LoadMenu.h"
 #include "SettingsMenu.h"

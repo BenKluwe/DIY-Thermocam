@@ -1,19 +1,34 @@
 /*
-* Main functions in the live mode
+*
+* THERMAL - Main functions in the live mode
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
 
 /* Includes */
+
 #include "Calibration.h"
 #include "Create.h"
 #include "Load.h"
 #include "Save.h"
 
-/* If the touch has been pressed, enable menu */
+/* Methods*/
+
+/* Touch interrupt handler */
 void touchIRQ() {
-	//When not in menu, show menu or lock/release limits
-	if ((!showMenu) && (!videoSave)) {
+	//When not in menu, video save, image save, serial mode or lock/release limits
+	if ((!showMenu) && (!videoSave) && (!longTouch) && (!imgSave) && (!serialMode)) {
 		//Count the time to choose selection
 		long startTime = millis();
+		delay(10);
 		long endTime = millis() - startTime;
 		//For capacitive touch
 		if (touch.capacitive) {
@@ -28,43 +43,87 @@ void touchIRQ() {
 		//Short press - show menu
 		if (endTime < 1000)
 			showMenu = true;
-		//Long press - lock or release limits
-		else {
-			detachInterrupts();
-			lockLimits = true;
-		}
+		//Long press not in visual - lock or release limits
+		else if (displayMode != displayMode_visual)
+			longTouch = true;
 	}
 }
 
-/* Handler to check the external button and react to it */
+/* Button interrupt handler */
 void buttonIRQ() {
-	//If we are in the video mode
-	if (videoSave) {
-		detachInterrupt(pin_button);
-		videoSave = false;
-		return;
-	}
-	//Count the time to choose selection
-	long startTime = millis();
-	long endTime = millis() - startTime;
-	while ((extButtonPressed()) && (endTime <= 1000))
-		endTime = millis() - startTime;
-	endTime = millis() - startTime;
-	//Short press - save image to SD Card
-	if (endTime < 1000)
-		//Prepare image save but let screen refresh first
-		imgSave = imgSave_set;
-	//Long press - start video
-	else {
-		if (displayMode != displayMode_thermal) {
-			drawMessage((char*) "Video only possible in thermal mode!");
-			delay(1000);
-		}
-		else {
-			detachInterrupts();
+	//When not in menu, video save, image save, serial mode or lock/release limits
+	if ((!showMenu) && (!videoSave) && (!longTouch) && (!imgSave) && (!serialMode)) {
+		//Count the time to choose selection
+		long startTime = millis();
+		delay(10);
+		long endTime = millis() - startTime;
+		//As long as the button is pressed
+		while (extButtonPressed() && (endTime <= 1000))
+			endTime = millis() - startTime;
+		//Short press - save image to SD Card
+		if (endTime < 1000)
+			//Prepare image save but let screen refresh first
+			imgSave = imgSave_set;
+		//Enable video mode
+		else
 			videoSave = true;
+	}
+}
+
+/* Handler for a long touch press */
+void longTouchHandler() {
+	//If not warmed up, do nothing
+	if (calStatus == cal_warmup) {
+		showTransMessage((char*) "Wait for warmup");
+	}
+
+	//When in auto mode, toggle between locked & unlocked
+	else if (autoMode) {
+		//Unlock limits
+		if (limitsLocked) {
+			showTransMessage((char*) "Limits unlocked");
+			limitsLocked = false;
+		}
+		//Lock limits
+		else {
+			showTransMessage((char*) "Limits locked");
+			limitsLocked = true;
 		}
 	}
+
+	//When in manual mode, toggle between presets
+	else {
+		byte minMaxPreset = EEPROM.read(eeprom_minMaxPreset);
+		//When in temporary limits, go to preset 1
+		if (minMaxPreset == minMax_temporary) {
+			showTransMessage((char*) "Switch to Preset 1");
+			EEPROM.write(eeprom_minMaxPreset, minMax_preset1);
+		}
+
+		//When in preset 1, go to preset 2
+		if (minMaxPreset == minMax_preset1) {
+			showTransMessage((char*) "Switch to Preset 2");
+			EEPROM.write(eeprom_minMaxPreset, minMax_preset2);
+		}
+
+		//When in preset 2, go to preset 3
+		if (minMaxPreset == minMax_preset2) {
+			showTransMessage((char*) "Switch to Preset 3");
+			EEPROM.write(eeprom_minMaxPreset, minMax_preset3);
+		}
+
+		//When in preset 3, go back to preset 1
+		if (minMaxPreset == minMax_preset3) {
+			showTransMessage((char*) "Switch to Preset 1");
+			EEPROM.write(eeprom_minMaxPreset, minMax_preset1);
+		}
+
+		//Load the new limits
+		readTempLimits();
+	}
+
+	//Disable lock limits menu
+	longTouch = false;
 }
 
 /* Show the color bar on screen */
@@ -106,26 +165,30 @@ void showColorBar() {
 
 	//Set text color
 	setTextColor();
+
 	//Calculate min and max temp in celcius/fahrenheit
 	float min = calFunction(minTemp);
 	float max = calFunction(maxTemp);
 	//Calculate step
 	float step = (max - min) / 3.0;
+
 	//Draw min temp
 	sprintf(buffer, "%d", (int)round(min));
 	display.print(buffer, 270, (height * 2) - 5);
+
 	//Draw temperatures after min before max
 	for (int i = 2; i >= 1; i--) {
 		float temp = min + (i*step);
 		sprintf(buffer, "%d", (int)round(temp));
 		display.print(buffer, 270, (height * 2) - 5 - (i * (colorElements / 6)));
 	}
+
 	//Draw max temp
 	sprintf(buffer, "%d", (int)round(max));
 	display.print(buffer, 270, (height * 2) - 5 - (3 * (colorElements / 6)));
 }
 
-/* Show the current object temperature on screen*/
+/* Show the current spot temperature on screen*/
 void showSpot() {
 	//Draw the spot circle
 	display.drawCircle(80, 60, 6);
@@ -319,7 +382,6 @@ void changeDisplayOptions(byte* pos) {
 	}
 }
 
-
 /* Change the color scheme for the thermal image */
 void changeColorScheme(byte* pos) {
 	//Align position to color scheme
@@ -330,58 +392,10 @@ void changeColorScheme(byte* pos) {
 	EEPROM.write(eeprom_colorScheme, colorScheme);
 }
 
-/* Lock or release limits */
-void limitLock() {
-	//If not warmed, do nothing
-	if (calStatus == cal_warmup) {
-		showMsg((char*) "Wait for warmup");
-	}
-	//When manual limits are set
-	else if (EEPROM.read(eeprom_minMaxSet) == eeprom_setValue) {
-		//When in auto mode, go to limits locked
-		if (agcEnabled && !limitsLocked) {
-			showMsg((char*) "Limits locked");
-			agcEnabled = true;
-			limitsLocked = true;
-		}
-		//When in limits locked mode, go to manual mode
-		else if (agcEnabled && limitsLocked) {
-			showMsg((char*) "Switch to MANUAL");
-			agcEnabled = false;
-			limitsLocked = false;
-			//Load old values from EEPROM
-			loadMinMaxTemp();
-		}
-		//When in manual mode, go to auto mode
-		else if (!agcEnabled) {
-			showMsg((char*) "Switch to AUTO");
-			agcEnabled = true;
-			limitsLocked = false;
-		}
-	}
-	//Otherwise lock or unlock limits
-	else {
-		//Unlock limits
-		if (limitsLocked) {
-			showMsg((char*) "Limits unlocked");
-			limitsLocked = false;
-		}
-		//Lock limits
-		else {
-			showMsg((char*) "Limits locked");
-			limitsLocked = true;
-		}
-	}
-
-	attachInterrupts();
-	showMenu = false;
-	lockLimits = false;
-}
-
 /* Show the thermal/visual/combined image on the screen */
 void showImage() {
-	//Draw thermal image on screen if created previously and not in menu
-	if ((imgSave != imgSave_set) && (showMenu == false))
+	//Draw thermal image on screen if created previously and not in menu nor in video save
+	if ((imgSave != imgSave_set) && (!showMenu) && (!videoSave))
 		display.writeScreen(image);
 	//If the image has been created, set to save
 	if (imgSave == imgSave_create)
@@ -402,7 +416,7 @@ void displayInfos() {
 	checkWarmup();
 
 	//If  not saving image or video
-	if ((imgSave != imgSave_create) && (videoSave == false)) {
+	if ((imgSave != imgSave_create) && (!videoSave)) {
 		//Show battery status in percantage
 		if (batteryEnabled)
 			displayBatteryStatus();
@@ -418,6 +432,11 @@ void displayInfos() {
 		//Display warmup if required
 		if ((videoSave == false) && (calStatus == cal_warmup))
 			displayWarmup();
+		//Show the minimum / maximum points
+		if (minMaxPoints & minMaxPoints_min)
+			displayMinMaxPoint(minTempPos, (const char *)"C");
+		if (minMaxPoints & minMaxPoints_max)
+			displayMinMaxPoint(maxTempPos, (const char *)"H");
 	}
 
 	//Show the spot in the middle
@@ -429,11 +448,6 @@ void displayInfos() {
 	//Show the temperature points
 	if (pointsEnabled)
 		showTemperatures();
-	//Show the minimum / maximum points
-	if (minMaxPoints & minMaxPoints_min)
-		displayMinMaxPoint(minTempPos, (const char *)"C");
-	if (minMaxPoints & minMaxPoints_max)
-		displayMinMaxPoint(maxTempPos, (const char *)"H");
 
 	//Set write back to display
 	display.writeToImage = false;
@@ -441,9 +455,13 @@ void displayInfos() {
 
 /* Check for serial connection */
 void checkSerial() {
-	//Check for incoming serial data
-	if ((Serial.available() > 0) && (Serial.read() == CMD_START))
+	//If start command received
+	if ((Serial.available() > 0) && (Serial.read() == CMD_START)) {
+		serialMode = true;
 		serialConnect();
+		serialMode = false;
+	}
+
 	//Another command received, discard it
 	else if ((Serial.available() > 0))
 		Serial.read();
@@ -466,13 +484,9 @@ void liveModeInit() {
 		combinedDecomp = false;
 	else
 		combinedDecomp = true;
-	//Attach the interrupts
-	attachInterrupts();
-	//Clear markers
-	imgSave = false;
-	videoSave = false;
-	showMenu = false;
-	lockLimits = false;
+	attachInterrupt(pin_button, buttonIRQ, RISING);
+	//Attach the Touch interrupt
+	attachInterrupt(pin_touch_irq, touchIRQ, FALLING);
 	//Clear showTemp values
 	clearTemperatures();
 }
@@ -493,17 +507,9 @@ void liveMode() {
 		if (showMenu)
 			mainMenu();
 
-		//Check if the save message needs to be shown
-		if (imgSave == imgSave_set) {
-			//Check the requirements for image save
+		//Check the requirements for image save
+		if (imgSave == imgSave_set)
 			checkImageSave();
-			if (imgSave != imgSave_disabled) {
-				//Build save filename from the current time & date
-				createSDName(saveFilename);
-				//Show save message
-				showSaveMessage();
-			}
-		}
 
 		//Create thermal image
 		if (displayMode == displayMode_thermal)
@@ -523,14 +529,12 @@ void liveMode() {
 		if (imgSave == imgSave_save)
 			saveImage();
 
-		//Start the video
-		if (videoSave) {
-			if (videoModeChooser())
-				videoCapture();
-		}
+		//Go into video mode
+		if (videoSave)
+			videoMode();
 
-		//Release or lock the limits
-		if (lockLimits)
-			limitLock();
+		//Long touch handler
+		if (longTouch)
+			longTouchHandler();
 	}
 }

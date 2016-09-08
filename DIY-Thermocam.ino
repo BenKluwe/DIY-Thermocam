@@ -1,8 +1,12 @@
 /*
 *
+* MAIN SKETCH - Main entry point for the firmware
+*
 * DIY-Thermocam Firmware
 *
-* 2014-2016 by Max Ritter
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
 *
 * http://www.diy-thermocam.net
 * https://github.com/maxritter/DIY-Thermocam
@@ -11,10 +15,11 @@
 
 /* Current firmware version */
 
-#define Version "Firmware 2.01 from 01.09.2016"
-#define fwVersion 201
+#define Version "Firmware 2.10 from 08.09.2016"
+#define fwVersion 210
 
-/* Libraries */
+/* External Libraries */
+
 #include <ADC.h>
 #include <i2c_t3.h>
 #include <SdFat.h>
@@ -30,41 +35,43 @@
 #include <Metro.h>
 
 /* General Includes */
+
 #include "General/ColorSchemes.h"
 #include "General/GlobalVariables.h"
 #include "General/GlobalMethods.h"
 
 /* Modules */
+
 #include "Hardware/Hardware.h"
 #include "GUI/GUI.h"
 #include "Thermal/Thermal.h"
 
 
 /* Main Entry point */
+
 void setup()
 {
-	//Reset diagnostic status
-	resetDiagnostic();
-	//Init Hardware
+	//Init the hardware components
 	initHardware();
 	//Check for hardware issues
 	checkDiagnostic();
-	//Do the first start setup
+	//Do the first start setup if required
 	if (checkFirstStart())
 		firstStart();
-	//Check FW upgrade
+	//Check for firmware upgrade done
 	checkFWUpgrade();
-	//Read EEPROM settings
+	//Read all settings from EEPROM
 	readEEPROM();
-	//Show the live mode helper
-	if (checkLiveModeHelper())	
-		//Show the live mode helper
+	//Show the live mode helper if required
+	if (checkLiveModeHelper())
 		liveModeHelper();
 	//Go to the live Mode
 	liveMode();
 }
 
 /* Loop forever */
+
 void loop()
 {
+	//The code never reaches this
 }

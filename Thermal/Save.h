@@ -1,6 +1,19 @@
 /*
-* Save images and videos to the internal storage
+*
+* SAVE - Save images and videos to the internal storage
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
+
+/* Methods*/
 
 /* Creates a filename from the current time & date */
 void createSDName(char* filename, bool folder) {
@@ -73,27 +86,18 @@ void checkImageSave() {
 
 	//Check if there is at least 1MB of space left
 	if (getSDSpace() < 1000) {
-		showMsg((char*) "Int. space full!");
+		showTransMessage((char*) "Int. space full!");
 		imgSave = imgSave_disabled;
 		return;
 	}
-}
 
-/* Shows on the screen that we saved an image */
-void showMsg(char* msg, bool bottom) {
-	//Set Text Color
-	setTextColor();
-	//set Background transparent
-	display.setBackColor(VGA_TRANSPARENT);
-	//Give the user a hint that it tries to save
-	display.setFont(bigFont);
-	if (bottom)
-		display.print(msg, CENTER, 160);
-	else
-		display.print(msg, CENTER, 80);
-	display.setFont(smallFont);
-	//Wait some time to read the text
-	delay(1000);
+	//Show message and build filename
+	if (imgSave != imgSave_disabled) {
+		//Build save filename from the current time & date
+		createSDName(saveFilename);
+		//Show save message
+		showSaveMessage();
+	}
 }
 
 /* Creates a bmp file for the thermal image */
@@ -101,7 +105,7 @@ void createBMPFile(char* filename) {
 	//File extension and open
 	strcpy(&filename[14], ".BMP");
 	sdFile.open(filename, O_RDWR | O_CREAT | O_AT_END);
-	//640 x 480 file header
+	//640 x 480 bitmap header
 	const char bmp_header[66] = { 0x42, 0x4D, 0x36, 0x60, 0x09, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x42, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00,
 		0x80, 0x02, 0x00, 0x00, 0xE0, 0x01, 0x00, 0x00, 0x01, 0x00, 0x10,
@@ -146,44 +150,30 @@ void createVideoFolder(char* dirname) {
 void saveVideoFrame(char* filename, char* dirname) {
 	//Begin SD Transmission
 	startAltClockline(true);
+
 	//Switch to video folder 
 	sd.chdir(dirname);
 	// Open the file for writing
 	sdFile.open(filename, O_RDWR | O_CREAT | O_AT_END);
-	//Header for frame content
-	const char bmp_header[66] = { 0x42, 0x4D, 0x36, 0x58, 0x02, 0x00, 0x00,
+
+	//160 x 120 bitmap header
+	const char bmp_header[66] = { 0x42, 0x4D, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x42, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00,
-		0x00, 0x40, 0x01, 0x00, 0x00, 0xF0, 0x00, 0x00, 0x00, 0x01,
-		0x00, 0x10, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x58, 0x02,
-		0x00, 0xC4, 0x0E, 0x00, 0x00, 0xC4, 0x0E, 0x00, 0x00, 0x00,
+		0x00, 0xA0, 0x00, 0x00, 0x00, 0x88, 0xFF, 0xFF, 0xFF, 0x01,
+		0x00, 0x10, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF8, 0x00,
 		0x00, 0xE0, 0x07, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x00 };
+
 	//Write the BMP header
 	for (int i = 0; i < 66; i++) {
 		char ch = bmp_header[i];
 		sdFile.write((uint8_t*)&ch, 1);
 	}
-	//Help variables for saving
-	unsigned short pixel;
-	//Allocate space for sd buffer
-	uint8_t* sdBuffer = (uint8_t*)calloc(640, sizeof(uint8_t));
-	//Save 320*60 pixels from the screen at one time
-	for (int i = 3; i >= 0; i--) {
-		endAltClockline();
-		//Read pixels from the display
-		display.readScreen(i, image);
-		startAltClockline();
-		for (byte y = 0; y < 60; y++) {
-			//Write them into the sd buffer
-			for (uint16_t x = 0; x < 320; x++) {
-				pixel = image[((59 - y) * 320) + x];
-				sdFile.write(pixel & 0x00FF);
-				sdFile.write((pixel & 0xFF00) >> 8);
-			}
-		}
-	}
-	//De-allocate space
-	free(sdBuffer);
+
+	//Write all the data
+	sdFile.write((uint8_t*)image, 38400);
+
 	//Close the file
 	sdFile.close();
 	//Switch Clock back to Standard
@@ -236,9 +226,6 @@ void saveDisplayImage(char* filename, char* dirname) {
 
 /* Saves images to the internal storage */
 void saveImage() {
-	//Detach the interrupts
-	detachInterrupts();
-
 	//Capture image command if we are in thermal mode
 	if ((visualEnabled == true) && (displayMode == displayMode_thermal))
 		captureVisualImage();
@@ -252,7 +239,7 @@ void saveImage() {
 		//Create file
 		createJPGFile(saveFilename);
 		//Display message
-		showMsg((char*) "Save Visual JPG..");
+		showTransMessage((char*) "Save Visual JPG..");
 		//For old hardware, save mirrored image
 		if (mlx90614Version == mlx90614Version_old) {
 			changeCamRes(VC0706_160x120);
@@ -268,18 +255,16 @@ void saveImage() {
 
 	//Show Message on screen
 	if (((visualEnabled == true) || (convertEnabled)) && (displayMode == displayMode_thermal))
-		showMsg((char*) "All saved!", true);
+		showTransMessage((char*) "All saved!", true);
 	else if (displayMode == displayMode_thermal)
-		showMsg((char*) "Thermal Raw saved!");
+		showTransMessage((char*) "Thermal RAW saved!");
 	else if (displayMode == displayMode_visual)
-		showMsg((char*) "Visual BMP saved!");
+		showTransMessage((char*) "Visual BMP saved!");
 	else if (displayMode == displayMode_combined)
-		showMsg((char*) "Combined BMP saved!");
+		showTransMessage((char*) "Combined BMP saved!");
 
 	//Disable image save marker
 	imgSave = imgSave_disabled;
-	//Re-attach the interrupts
-	attachInterrupts();
 }
 
 /* Converts a float to four bytes */
@@ -313,41 +298,75 @@ void frameFilename(char* filename, uint16_t count) {
 
 /* Proccess video frames */
 void proccessVideoFrames(uint16_t framesCaptured, char* dirname) {
-	char buffer[14];
+	char buffer[30];
 	char filename[] = "00000.DAT";
-	display.setBackColor(VGA_TRANSPARENT);
-	for (uint16_t count = 0; count < framesCaptured; count++) {
+	uint16_t framesConverted = 0;
+
+	//Display screen content
+	display.fillScr(200, 200, 200);
+	display.setBackColor(200, 200, 200);
+	display.setFont(bigFont);
+	display.setColor(VGA_BLUE);
+	display.print((char*)"Converting video", CENTER, 30);
+	display.setFont(smallFont);
+	display.setColor(VGA_BLACK);
+	display.print((char*)"Press push button to stop converting", CENTER, 80);
+	display.print((char*)"Touch to toggle screen backlight", CENTER, 120);
+	sprintf(buffer, "Frames converted: %5d / %5d", framesConverted, framesCaptured);
+	display.print(buffer, CENTER, 160);
+	sprintf(buffer, "Folder name: %s", dirname);
+	display.print(buffer, CENTER, 200);
+
+	//Go through all the frames in the folder
+	for (framesConverted = 0; framesConverted < framesCaptured; framesConverted++) {
 		//Check if there is at least 1MB of space left
 		if (getSDSpace() < 1000) {
-			drawMessage((char*) "No space, stop conversion..");
+			showFullMessage((char*) "No space, stop conversion..");
 			delay(1000);
 			return;
 		}
-		//Check if the user wants to abort conversion
-		if (videoSave == false) {
-			drawMessage((char*) "Video proccessing aborted!");
-			delay(1000);
-			return;
+
+		//Touch - turn display on or off
+		if (!digitalRead(pin_touch_irq)) {
+			digitalWrite(pin_lcd_backlight, !(checkScreenLight()));
+			while (!digitalRead(pin_touch_irq));
 		}
+
+		//Button press - stop capture
+		if (extButtonPressed())
+			break;
+
 		//Get filename
-		frameFilename(filename, count);
+		frameFilename(filename, framesConverted);
 		strcpy(&filename[5], ".DAT");
 		//Load Raw data
 		loadRawData(filename, dirname);
-		//Display Raw Data
-		displayRawData();
-		//Set font size to small
-		display.setFont(smallFont);
-		//Show the image number
-		sprintf(buffer, "%5d / %-5d", count + 1, framesCaptured);
-		display.setColor(VGA_WHITE);
-		display.print(buffer, CENTER, 225);
+
+		//Apply low-pass filter
+		if (filterType == filterType_box)
+			boxFilter();
+		else if (filterType == filterType_gaussian)
+			gaussianFilter();
+
+		//Convert lepton data to RGB565 colors
+		convertColors();
+
+		//Display additional infos
+		displayInfos();
+
 		//Save frame to image file
 		strcpy(&filename[5], ".BMP");
 		saveVideoFrame(filename, dirname);
+
+		//Update screen content
+		display.setBackColor(200, 200, 200);
+		display.setFont(smallFont);
+		display.setColor(VGA_BLACK);
+		sprintf(buffer, "Frames converted: %5d / %5d", framesConverted + 1, framesCaptured);
+		display.print(buffer, CENTER, 160);
 	}
 	//All images converted!
-	drawMessage((char*) "Video proccessing finished !");
+	showFullMessage((char*) "Video conversion finished !");
 	delay(1000);
 }
 
@@ -380,6 +399,7 @@ void saveRawData(bool isImage, char* name, uint16_t framesCaptured) {
 			}
 		}
 	}
+
 	//For the Lepton3 sensor, write 19200 raw values
 	else {
 		for (int i = 0; i < 19200; i++) {
@@ -438,7 +458,7 @@ void saveRawData(bool isImage, char* name, uint16_t framesCaptured) {
 	endAltClockline();
 }
 
-/* Save a screenshot to the sd Card */
+/* Save a screenshot to the sd card */
 void saveScreenshot() {
 	if (Serial.available() > 0) {
 		Serial.read();

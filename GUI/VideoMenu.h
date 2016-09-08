@@ -1,8 +1,20 @@
 /*
-* Video Menu
+*
+* VIDEO MENU - Record single frames or time interval videos
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
 
 /* Variables */
+
 //Video save interval in seconds
 int16_t videoInterval;
 
@@ -38,11 +50,11 @@ void videoIntervalString(int pos) {
 		break;
 		//5 minutes
 	case 6:
-		text = (char*) "5 Minute";
+		text = (char*) "5 minutes";
 		break;
 		//10 minutes
 	case 7:
-		text = (char*) "10 Minutes";
+		text = (char*) "10 minutes";
 		break;
 	}
 	//Draws the current selection
@@ -50,9 +62,7 @@ void videoIntervalString(int pos) {
 }
 
 /* Touch Handler for the video interval chooser */
-bool videoIntervalHandler() {
-	//Save the current position inside the menu
-	byte pos = 0;
+bool videoIntervalHandler(byte* pos) {
 	//Main loop
 	while (true) {
 		//Touch screen pressed
@@ -60,7 +70,7 @@ bool videoIntervalHandler() {
 			int pressedButton = touchButtons.checkButtons(true);
 			//SELECT
 			if (pressedButton == 3) {
-				switch (pos) {
+				switch (*pos) {
 					//1 second
 				case 0:
 					videoInterval = 1;
@@ -102,20 +112,20 @@ bool videoIntervalHandler() {
 			}
 			//BACKWARD
 			else if (pressedButton == 0) {
-				if (pos > 0)
-					pos--;
-				else if (pos == 0)
-					pos = 7;
+				if (*pos > 0)
+					*pos = *pos - 1;
+				else if (*pos == 0)
+					*pos = 7;
 			}
 			//FORWARD
 			else if (pressedButton == 1) {
-				if (pos < 7)
-					pos++;
-				else if (pos == 7)
-					pos = 0;
+				if (*pos < 7)
+					*pos = *pos + 1;
+				else if (*pos == 7)
+					*pos = 0;
 			}
 			//Change the menu name
-			videoIntervalString(pos);
+			videoIntervalString(*pos);
 		}
 	}
 }
@@ -123,28 +133,17 @@ bool videoIntervalHandler() {
 /* Start video menu to choose interval */
 bool videoIntervalChooser() {
 	bool rtn = 0;
-	//Border
-	display.setColor(VGA_BLACK);
-	display.fillRoundRect(5, 5, 315, 235);
+	static byte videoIntervalPos = 0;
 	//Background
 	mainMenuBackground();
-	//Buttons
-	touchButtons.deleteAllButtons();
-	touchButtons.setTextFont(bigFont);
-	touchButtons.addButton(15, 45, 38, 77, (char*) "<", 0, true);
-	touchButtons.addButton(267, 45, 38, 77, (char*) ">", 0, true);
-	touchButtons.addButton(15, 188, 140, 40, (char*) "Back");
-	touchButtons.addButton(100, 132, 130, 35, (char*) "OK");
-	touchButtons.drawButtons();
-	//Border
-	display.setColor(255, 106, 0);
-	display.drawRect(65, 57, 257, 111);
 	//Title
 	mainMenuTitle((char*) "Choose interval");
+	//Draw the selection menu
+	drawSelectionMenu();
 	//Current choice name
-	videoIntervalString(0);
+	videoIntervalString(videoIntervalPos);
 	//Touch handler - return true if exit to Main menu, otherwise false
-	rtn = videoIntervalHandler();
+	rtn = videoIntervalHandler(&videoIntervalPos);
 	//Restore old fonts
 	display.setFont(smallFont);
 	touchButtons.setTextFont(smallFont);
@@ -160,10 +159,13 @@ void refreshCapture() {
 		boxFilter();
 	else if (filterType == filterType_gaussian)
 		gaussianFilter();
+
 	//Convert lepton data to RGB565 colors
 	convertColors();
+
 	//Display additional infos
 	displayInfos();
+
 	//Draw thermal image on screen
 	display.writeScreen(image);
 }
@@ -175,7 +177,7 @@ void videoCaptureInterval(int16_t* remainingTime, uint16_t* framesCaptured, char
 	char buffer[30];
 
 	//If there is no more time or the first frame, capture it
-	if ((*remainingTime == 0) || (*framesCaptured == 0)){
+	if ((*remainingTime == 0) || (*framesCaptured == 0)) {
 
 		//Send capture command to camera if activated and there is enough time
 		if ((visualEnabled) && (videoInterval >= 10))
@@ -192,6 +194,10 @@ void videoCaptureInterval(int16_t* remainingTime, uint16_t* framesCaptured, char
 
 		//Save visual image if activated
 		if ((visualEnabled) && (videoInterval >= 10)) {
+			//Display message
+			sprintf(buffer, "Saving thermal + visual now!");
+			display.setFont(smallFont);
+			display.print(buffer, CENTER, 210);
 			//Create filename to save data
 			char filename[] = "00000.JPG";
 			frameFilename(filename, *framesCaptured);
@@ -202,10 +208,6 @@ void videoCaptureInterval(int16_t* remainingTime, uint16_t* framesCaptured, char
 			//Reset counter
 			int16_t elapsed = (millis() - measure) / 1000;
 			*remainingTime = videoInterval - elapsed;
-			//Display message
-			sprintf(buffer, "Saving thermal + visual now!");
-			display.setFont(smallFont);
-			display.print(buffer, CENTER, 210);
 		}
 		else {
 			*remainingTime = videoInterval;
@@ -214,7 +216,7 @@ void videoCaptureInterval(int16_t* remainingTime, uint16_t* framesCaptured, char
 			display.setFont(smallFont);
 			display.print(buffer, CENTER, 210);
 		}
-			
+
 		//Raise capture counter
 		*framesCaptured = *framesCaptured + 1;
 	}
@@ -239,40 +241,42 @@ void videoCaptureInterval(int16_t* remainingTime, uint16_t* framesCaptured, char
 	}
 }
 
-/* Captures video frames normal */
-void videoCaptureNormal(uint16_t* framesCaptured, char* dirname) {
-	char buffer[30];
-	
-	//Save video raw frame
-	saveRawData(false, dirname, *framesCaptured);
-	//Raise capture counter
-	*framesCaptured = *framesCaptured + 1;
-	//Refresh display content
-	refreshCapture();
-	//Display title
-	display.setFont(bigFont);
-	display.print((char*) "Recording..", CENTER, 20);
-	//Display status update
-	sprintf(buffer, "Frames captured: %-5d", *framesCaptured);
-	display.setFont(smallFont);
-	display.print(buffer, CENTER, 210);
-}
-
 /* This screen is shown during the video capture */
 void videoCapture() {
 	//Help variables
 	char dirname[20];
+	char buffer[30];
 	int16_t delayTime = videoInterval;
 	uint16_t framesCaptured = 0;
+
+	//Update display
+	showFullMessage((char*) "Please wait..");
+
 	//Create folder 
 	createVideoFolder(dirname);
-	//Update display
-	drawMessage((char*) "Please wait..");
-	//Attach the interrupts
-	attachInterrupts();
-	//Set text colors
-	display.setColor(VGA_WHITE);
-	display.setBackColor(VGA_TRANSPARENT);
+
+	//For normal video, display screen content
+	if (videoInterval == 0) {
+		display.fillScr(200, 200, 200);
+		display.setBackColor(200, 200, 200);
+		display.setFont(bigFont);
+		display.setColor(VGA_BLUE);
+		display.print((char*)"Recording video", CENTER, 30);
+		display.setFont(smallFont);
+		display.setColor(VGA_BLACK);
+		display.print((char*)"Press push button to stop capture", CENTER, 80);
+		display.print((char*)"Touch to toggle screen backlight", CENTER, 120);
+		sprintf(buffer, "Frames captured: %5d", framesCaptured);
+		display.print(buffer, CENTER, 160);
+		sprintf(buffer, "Folder name: %s", dirname);
+		display.print(buffer, CENTER, 200);
+	}
+	else {
+		//Set text colors
+		setTextColor();
+		display.setBackColor(VGA_TRANSPARENT);
+	}
+
 	//Main loop
 	while (videoSave) {
 
@@ -282,20 +286,33 @@ void videoCapture() {
 			while (!digitalRead(pin_touch_irq));
 		}
 
+		//Button press - stop capture
+		if (extButtonPressed())
+			break;
+
 		//Receive the temperatures over SPI
 		getTemperatures();
 		//Compensate calibration with object temp
 		compensateCalib();
+
 		//Refresh the temp points if required
 		if (pointsEnabled)
 			refreshTempPoints();
+
 		//Find min and max if not in manual mode and limits not locked
-		if ((agcEnabled) && (!limitsLocked)) 
-				limitValues();
+		if ((autoMode) && (!limitsLocked))
+			limitValues();
 
 		//Normal  mode
-		if (videoInterval == 0)
-			videoCaptureNormal(&framesCaptured, dirname);
+		if (videoInterval == 0) {
+			//Save video raw frame
+			saveRawData(false, dirname, framesCaptured);
+			//Raise capture counter
+			framesCaptured = framesCaptured + 1;
+			//Display current frames captured
+			sprintf(buffer, "Frames captures: %5d", framesCaptured);
+			display.print(buffer, CENTER, 160);
+		}
 		//Time interval save
 		else {
 			videoCaptureInterval(&delayTime, &framesCaptured, dirname);
@@ -303,61 +320,63 @@ void videoCapture() {
 
 		//Maximum amount of frames reached or disk space out, return
 		if ((framesCaptured == 65535) || (getSDSpace() < 1000)) {
-			drawMessage((char*) "Not enough space, abort!");
+			showFullMessage((char*) "Not enough space, abort!");
 			break;
 		}
 	}
+
 	//Turn the display on if it was off before
 	if (!checkScreenLight())
 		enableScreenLight();
+
 	//Post processing for interval videos if enabled
-	if ((framesCaptured > 0) && (videoInterval != 0)) {
+	if (framesCaptured > 0) {
 		videoSave = true;
 		//Ask the user if he wants to convert that video
 		if (convertPrompt()) {
-			drawMessage((char*) "Capture finished ! Converting..");
+			showFullMessage((char*) "Capture finished ! Converting..");
 			delay(1000);
-			//Attach the Button interrupt
-			attachInterrupt(pin_button, buttonIRQ, RISING);
 			//Process video frames
 			proccessVideoFrames(framesCaptured, dirname);
 		}
 	}
+
 	//Show finished message
 	else {
-		drawMessage((char*) "Video capture finished !");
+		showFullMessage((char*) "Video capture finished !");
 		delay(1000);
 	}
-	//Re-attach the interrupts
-	attachInterrupts();
+
 	//Disable mode
 	videoSave = false;
-	imgSave = false;
 }
 
-/* Video mode chooser, normal or interval */
-bool videoModeChooser() {
+/* Video mode, choose intervall or normal */
+bool videoMode() {
+	//Show message that video is only possible in thermal mode
+	if (displayMode != displayMode_thermal) {
+		showFullMessage((char*) "Video only possible in thermal mode!");
+		//Disable mode
+		videoSave = false;
+		return false;
+	}
 	//For old HW, check if the SD card is there
 	if (mlx90614Version == mlx90614Version_old) {
 		if (!checkSDCard()) {
-			//Re-attach the interrupts
-			attachInterrupts();
 			//Disable mode
 			videoSave = false;
-			imgSave = false;
 			return false;
 		}
 	}
 	//Check if there is at least 1MB of space left
 	if (getSDSpace() < 1000) {
-		showMsg((char*) "Int. space full!");
-		//Re-attach the interrupts
-		attachInterrupts();
+		showFullMessage((char*) "Int. space full!");
 		//Disable mode
 		videoSave = false;
-		imgSave = false;
 		return false;
 	}
+
+redraw:
 	//Title & Background
 	mainMenuBackground();
 	mainMenuTitle((char*)"Video mode");
@@ -368,29 +387,37 @@ bool videoModeChooser() {
 	touchButtons.addButton(165, 47, 140, 120, (char*) "Interval");
 	touchButtons.addButton(15, 188, 140, 40, (char*) "Back");
 	touchButtons.drawButtons();
+
 	//Touch handler
 	while (true) {
 		//If touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
+
 			//Normal
 			if (pressedButton == 0) {
+				//Set video interval to zero, means normal
 				videoInterval = 0;
+				//Start capturing a video
+				videoCapture();
 				break;
 			}
+
 			//Interval
 			else if (pressedButton == 1) {
+				//Choose the time interval
 				if (!videoIntervalChooser())
-					return false;
+					//Redraw video mode if user pressed back
+					goto redraw;
+				//Start capturing a video
+				videoCapture();
 				break;
 			}
-			//BACK
+
+			//Back
 			else if (pressedButton == 2) {
-				//Re-attach the interrupts
-				attachInterrupts();
 				//Disable mode
 				videoSave = false;
-				imgSave = false;
 				return false;
 			}
 		}

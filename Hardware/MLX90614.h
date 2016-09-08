@@ -1,5 +1,16 @@
 /*
-* Access the MLX90614 single-point IR sensor
+*
+* MLX90614 - Access the MLX90614 spot IR sensor
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
 
 /* Variables */
@@ -57,7 +68,7 @@ uint16_t mlx90614GetRawData(bool TaTo, bool* check) {
 		Wire.send(mlx90614_AmbientTemp);
 	//Measure Object Temp
 	else {
-		Wire.send(mlx90614_ObjectTemp); 
+		Wire.send(mlx90614_ObjectTemp);
 	}
 	Wire.endTransmission(I2C_NOSTOP);
 	//Receive data	
@@ -138,7 +149,7 @@ void mlx90614SetMax() {
 		delay(100);
 		//If we failed after 10 retries, set error and continue
 		if (count == 10) {
-			drawMessage((char*) "Spot sensor setMax not working!");
+			showFullMessage((char*) "Spot sensor setMax not working!");
 			delay(2000);
 			setDiagnostic(diag_spot);
 			return;
@@ -168,7 +179,7 @@ void mlx90614SetMin() {
 		delay(100);
 		//If we failed after 10 retries, set error and continue
 		if (count == 10) {
-			drawMessage((char*) "Spot sensor setMin not working!");
+			showFullMessage((char*) "Spot sensor setMin not working!");
 			delay(2000);
 			setDiagnostic(diag_spot);
 			return;
@@ -198,7 +209,7 @@ void mlx90614SetEmissivity() {
 		delay(100);
 		//If we failed after 10 retries, set error and continue
 		if (count == 10) {
-			drawMessage((char*) "Spot sensor emissivity not working!");
+			showFullMessage((char*) "Spot sensor emissivity not working!");
 			delay(2000);
 			setDiagnostic(diag_spot);
 			return;
@@ -222,15 +233,15 @@ void mlx90614SetFilter() {
 	uint16_t filterSettings;
 	//Old MLX90614 with gain factor of 12.5
 	if (mlx90614Version == mlx90614Version_old) {
-		filterSettings = 40816;
-		MSB = 0x70;
+		filterSettings = 40820;
+		MSB = 0x74;
 		LSB = 0x9F;
 	}
-	
+
 	//New MLX90614 with gain factor of 100
 	else if (mlx90614Version == mlx90614Version_new) {
-		filterSettings = 46960;
-		MSB = 0x70;
+		filterSettings = 46964;
+		MSB = 0x74;
 		LSB = 0xB7;
 	}
 	//Try to set the new filter settings
@@ -244,7 +255,7 @@ void mlx90614SetFilter() {
 		delay(100);
 		//If we failed after 10 retries, set error and continue
 		if (count == 10) {
-			drawMessage((char*) "Spot sensor setFilter not working!");
+			showFullMessage((char*) "Spot sensor setFilter not working!");
 			delay(2000);
 			setDiagnostic(diag_spot);
 			return;
@@ -257,10 +268,10 @@ void mlx90614SetFilter() {
 bool mlx90614CheckFilter() {
 	uint16_t filter = mlx90614Receive(mlx90614_Filter);
 	//Old MLX90614 with gain factor of 12.5
-	if ((mlx90614Version == mlx90614Version_old) && (filter != 40816))
+	if ((mlx90614Version == mlx90614Version_old) && (filter != 40820))
 		return false;
 	//New MLX90614 with gain factor of 100
-	else if ((mlx90614Version == mlx90614Version_new) && (filter != 46960))
+	else if ((mlx90614Version == mlx90614Version_new) && (filter != 46964))
 		return false;
 	///Everything was fine
 	return true;
@@ -274,7 +285,7 @@ float mlx90614GetAmb() {
 		mlx90614Measure(1, &check);
 		//If we cannot connect, set error and continue
 		if (count == 100) {
-			drawMessage((char*) "Error reading ambient temperature!");
+			showFullMessage((char*) "Error reading ambient temperature!");
 			return 0;
 		}
 		count++;
@@ -291,7 +302,7 @@ float mlx90614GetTemp() {
 		mlx90614Measure(0, &check);
 		//If we cannot connect, set error and continue
 		if (count == 100) {
-			drawMessage((char*) "Error reading object temperature!");
+			showFullMessage((char*) "Error reading object temperature!");
 			return 0;
 		}
 		count++;
@@ -305,42 +316,44 @@ void mlx90614Init() {
 	//Get MLX90614Version
 	uint16_t filter = mlx90614Receive(mlx90614_Filter);
 	mlx90614Version = (filter >> 13) & 1;
+
 	//If first start has been completed before and there are no other error, do checks
 	if ((EEPROM.read(eeprom_firstStart) == eeprom_setValue) && (diagnostic == diag_ok)) {
 		//Check Filter Temp
 		if (mlx90614CheckFilter() == false) {
-			drawMessage((char*)"Spot filter invalid, rewrite..");
+			showFullMessage((char*)"Spot filter invalid, rewrite..");
 			delay(2000);
 			mlx90614SetFilter();
 			setDiagnostic(diag_spot);
 		}
 		//Check Min Temp
 		if (mlx90614CheckMin() == false) {
-			drawMessage((char*)"Spot minTemp invalid, rewrite..");
+			showFullMessage((char*)"Spot minTemp invalid, rewrite..");
 			delay(2000);
 			mlx90614SetMin();
 			setDiagnostic(diag_spot);
 		}
 		//Check Max Temp
 		if (mlx90614CheckMax() == false) {
-			drawMessage((char*)"Spot maxTemp invalid, rewrite..");
+			showFullMessage((char*)"Spot maxTemp invalid, rewrite..");
 			delay(2000);
 			mlx90614SetMax();
 			setDiagnostic(diag_spot);
 		}
 		//Check Emissivity
 		if (mlx90614CheckEmissivity() == false) {
-			drawMessage((char*)"Spot emissivity invalid, rewrite..");
+			showFullMessage((char*)"Spot emissivity invalid, rewrite..");
 			delay(2000);
 			mlx90614SetEmissivity();
 			setDiagnostic(diag_spot);
 		}
 		//Show message, if one of the settings had to be re-written
 		if (!checkDiagnostic(diag_spot)) {
-			drawMessage((char*)"Spot EEPROM updated, restart device!");
+			showFullMessage((char*)"Spot EEPROM updated, restart device!");
 			while (1);
 		}
 	}
+
 	//Check if the object temp is valid
 	bool check = true;
 	byte count = 0;
@@ -348,7 +361,7 @@ void mlx90614Init() {
 		mlx90614Measure(0, &check);
 		//If we cannot connect, set error and continue
 		if (count == 100) {
-			drawMessage((char*) "Spot sensor objTemp internal error!");
+			showFullMessage((char*) "Spot sensor objTemp internal error!");
 			delay(2000);
 			setDiagnostic(diag_spot);
 			break;
@@ -356,6 +369,7 @@ void mlx90614Init() {
 		count++;
 		delay(10);
 	} while (check == false);
+
 	//Check if the ambient temp is valid
 	check = true;
 	count = 0;
@@ -363,7 +377,7 @@ void mlx90614Init() {
 		mlx90614Measure(1, &check);
 		//If we cannot connect, set error and continue
 		if (count == 100) {
-			drawMessage((char*)"Spot sensor ambTemp internal error!");
+			showFullMessage((char*)"Spot sensor ambTemp internal error!");
 			delay(2000);
 			setDiagnostic(diag_spot);
 			break;

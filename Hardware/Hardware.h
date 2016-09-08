@@ -1,5 +1,16 @@
 /*
-* Main hardware functions
+*
+* HARDWARE - Main hardware functions
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
 
 /* Includes */
@@ -21,13 +32,13 @@ time_t getTeensy3Time()
 
 /* Toggle the display*/
 void toggleDisplay() {
-	drawMessage((char*) "Screen goes off, touch to continue!", true);
+	showFullMessage((char*) "Screen goes off, touch to continue!", true);
 	delay(1000);
 	disableScreenLight();
 	//Wait for touch press
 	while (!touch.touched());
 	//Turning screen on
-	drawMessage((char*) "Turning screen on..", true);
+	showFullMessage((char*) "Turning screen on..", true);
 	enableScreenLight();
 	delay(1000);
 }
@@ -38,9 +49,7 @@ bool screenOffCheck() {
 	if ((screenOff.check()) && (screenOffTime != screenOffTime_disabled)) {
 		//No touch press in the last interval
 		if (screenPressed == false) {
-			detachInterrupts();
 			toggleDisplay();
-			attachInterrupts();
 			screenOff.reset();
 			return true;
 		}
@@ -49,7 +58,7 @@ bool screenOffCheck() {
 			screenPressed = false;
 			screenOff.reset();
 			return false;
-		}		
+		}
 	}
 	return false;
 }
@@ -58,14 +67,14 @@ bool screenOffCheck() {
 void initScreenOffTimer() {
 	byte read = EEPROM.read(eeprom_screenOffTime);
 	//Try to read from EEPROM
-	if ((read == screenOffTime_disabled) || (read == screenOffTime_10min) || read == screenOffTime_30min) {
+	if ((read == screenOffTime_disabled) || (read == screenOffTime_5min) || read == screenOffTime_20min) {
 		screenOffTime = read;
 		//10 Minutes
-		if (screenOffTime == screenOffTime_10min)
-			screenOff.begin(600000, false);
+		if (screenOffTime == screenOffTime_5min)
+			screenOff.begin(300000, false);
 		//30 Minutes
-		else if (screenOffTime == screenOffTime_30min)
-			screenOff.begin(1800000, false);
+		else if (screenOffTime == screenOffTime_20min)
+			screenOff.begin(1200000, false);
 		//Disable marker
 		screenPressed = false;
 	}
@@ -79,7 +88,7 @@ void toggleLaser(bool message) {
 		digitalWrite(pin_laser, LOW);
 		laserEnabled = false;
 		if (message) {
-			drawMessage((char*) "Laser is now off!", true);
+			showFullMessage((char*) "Laser is now off!", true);
 			delay(1000);
 		}
 	}
@@ -87,7 +96,7 @@ void toggleLaser(bool message) {
 		digitalWrite(pin_laser, HIGH);
 		laserEnabled = true;
 		if (message) {
-			drawMessage((char*) "Laser is now on!", true);
+			showFullMessage((char*) "Laser is now on!", true);
 			delay(1000);
 		}
 	}
@@ -101,6 +110,19 @@ void initGPIO() {
 	laserEnabled = false;
 	//Set button as input
 	pinMode(pin_button, INPUT);
+}
+
+/* Init the time and correct it if required */
+void initRTC() {
+	//Get the time from the Teensy
+	setSyncProvider(getTeensy3Time);
+	//Check if year is lower than 2016
+	if (year() < 2016) {
+		showFullMessage((char*) "Empty coin cell battery, recharge!");
+		delay(1500);
+		setTime(0, 0, 0, 1, 1, 2016);
+		Teensy3Clock.set(now());
+	}
 }
 
 /* Disables all Chip-Select lines on the SPI bus */
@@ -158,24 +180,6 @@ void startAltClockline(bool sdStart) {
 void endAltClockline() {
 	CORE_PIN13_CONFIG = PORT_PCR_DSE | PORT_PCR_MUX(2);
 	CORE_PIN14_CONFIG = PORT_PCR_MUX(1);
-}
-
-/* Attach both interrupts */
-void attachInterrupts() {
-	//Attach the Button interrupt
-	pinMode(pin_button, INPUT);
-	attachInterrupt(pin_button, buttonIRQ, RISING);
-	//Attach the Touch interrupt
-	pinMode(pin_touch_irq, INPUT);
-	attachInterrupt(pin_touch_irq, touchIRQ, FALLING);
-}
-
-/* Detach both interrupts */
-void detachInterrupts() {
-	//Detach the Button interrupt
-	detachInterrupt(pin_button);
-	//Detach the Touch interrupt
-	detachInterrupt(pin_touch_irq);
 }
 
 /* A method to check if the touch screen is pressed */
@@ -264,17 +268,6 @@ void printDiagnostic() {
 		Serial.println("Lepton data - Failed");
 }
 
-/* Loads the minimum and maximum temperature from EEPROM */
-void loadMinMaxTemp() {
-	int16_t min, max;
-	if (EEPROM.read(eeprom_minMaxSet) == eeprom_setValue) {
-		min = ((EEPROM.read(eeprom_minTempHigh) << 8) + EEPROM.read(eeprom_minTempLow));
-		max = ((EEPROM.read(eeprom_maxTempHigh) << 8) + EEPROM.read(eeprom_maxTempLow));
-		minTemp = tempToRaw(min);
-		maxTemp = tempToRaw(max);
-	}
-}
-
 /* Checks if the sd card is inserted for Early Bird Hardware */
 bool checkSDCard() {
 	//Old hardware, begin SD transaction
@@ -282,7 +275,7 @@ bool checkSDCard() {
 		startAltClockline();
 		if (!sd.begin(pin_sd_cs, SPI_FULL_SPEED)) {
 			//Show error message if there is no card inserted
-			drawMessage((char*) "Please insert SDCard!");
+			showFullMessage((char*) "Please insert SDCard!");
 			delay(1000);
 			//Go back 
 			return false;
@@ -338,11 +331,13 @@ void initDisplay() {
 		if (color != VGA_RED)
 			setDiagnostic(diag_display);
 	}
-		
+
 }
 
 /* Initializes the touch module and checks if it is working */
 void initTouch() {
+	//Set the touch IRQ pin to input
+	pinMode(pin_touch_irq, INPUT);
 	//Init the touch
 	touch.begin(&screenPressed);
 	//If not capacitive, check if working
@@ -353,16 +348,11 @@ void initTouch() {
 			return;
 		//Not working
 		else {
-			drawMessage((char*) "Touch screen is not working!");
+			showFullMessage((char*) "Touch screen is not working!");
 			delay(1000);
 			setDiagnostic(diag_touch);
 		}
 	}
-}
-
-/* Resets the diagnostic status */
-void resetDiagnostic() {
-	diagnostic = diag_ok;
 }
 
 /* Checks for hardware issues */
@@ -379,6 +369,12 @@ void checkDiagnostic() {
 	}
 }
 
+/* Clears the whole EEPROM */
+void clearEEPROM() {
+	for (unsigned int i = 0; i < EEPROM.length(); i++)
+		EEPROM.write(i, 0);
+}
+
 /* Checks if a FW upgrade has been done */
 void checkFWUpgrade() {
 	byte eepromVersion = EEPROM.read(eeprom_fwVersion);
@@ -387,23 +383,20 @@ void checkFWUpgrade() {
 		//Upgrade from old Thermocam-V4 firmware
 		if ((mlx90614Version == mlx90614Version_old) && (eeprom_liveHelper != eeprom_setValue)) {
 			//Clear EEPROM
-			for (unsigned int i = 0; i < EEPROM.length(); i++)
-				EEPROM.write(i, 0);
+			clearEEPROM();
 			//Show message and wait
-			drawMessage((char*)"FW update completed, pls restart!");
+			showFullMessage((char*)"FW update completed, pls restart!");
 		}
 		//Upgrade
 		else if (fwVersion > eepromVersion) {
 			//Clear EEPROM if coming from a firmware version smaller than 2.00
-			if (eepromVersion < 200) {
-				for (unsigned int i = 0; i < EEPROM.length(); i++)
-					EEPROM.write(i, 0);
-			}
-			drawMessage((char*)"FW update completed, pls restart!");
+			if (eepromVersion < 200)
+				clearEEPROM();
+			showFullMessage((char*)"FW update completed, pls restart!");
 		}
 		//Downgrade
 		else
-			drawMessage((char*)"FW downgrade completed, pls restart!");
+			showFullMessage((char*)"FW downgrade completed, pls restart!");
 		//Set EEPROM firmware version to current one
 		EEPROM.write(eeprom_fwVersion, fwVersion);
 		while (true);
@@ -429,6 +422,83 @@ void readCalibration() {
 	for (int i = 0; i < 4; i++)
 		farray[i] = EEPROM.read(eeprom_calSlopeBase + i);
 	calSlope = bytesToFloat(farray);
+}
+
+/* Reads the temperature limits from EEPROM */
+void readTempLimits() {
+	int16_t min, max;
+	//Min / max selection
+	byte minMaxPreset;
+	byte read = EEPROM.read(eeprom_minMaxPreset);
+	if ((read >= minMax_preset1) && (read <= minMax_preset3))
+		minMaxPreset = read;
+	else
+		minMaxPreset = minMax_temporary;
+	//Min / max preset 1
+	if ((minMaxPreset == minMax_preset1) && (EEPROM.read(eeprom_minMax1Set) == eeprom_setValue)) {
+		min = ((EEPROM.read(eeprom_minTemp1High) << 8) + EEPROM.read(eeprom_minTemp1Low));
+		max = ((EEPROM.read(eeprom_maxTemp1High) << 8) + EEPROM.read(eeprom_maxTemp1Low));
+		minTemp = tempToRaw(min);
+		maxTemp = tempToRaw(max);
+	}
+	//Min / max preset 2
+	else if ((minMaxPreset == minMax_preset2) && (EEPROM.read(eeprom_minMax2Set) == eeprom_setValue)) {
+		min = ((EEPROM.read(eeprom_minTemp2High) << 8) + EEPROM.read(eeprom_minTemp2Low));
+		max = ((EEPROM.read(eeprom_maxTemp2High) << 8) + EEPROM.read(eeprom_maxTemp2Low));
+		minTemp = tempToRaw(min);
+		maxTemp = tempToRaw(max);
+
+	}
+	//Min / max preset 3
+	else if ((minMaxPreset == minMax_preset3) && (EEPROM.read(eeprom_minMax3Set) == eeprom_setValue)) {
+		min = ((EEPROM.read(eeprom_minTemp3High) << 8) + EEPROM.read(eeprom_minTemp3Low));
+		max = ((EEPROM.read(eeprom_maxTemp3High) << 8) + EEPROM.read(eeprom_maxTemp3Low));
+		minTemp = tempToRaw(min);
+		maxTemp = tempToRaw(max);
+	}
+}
+
+/* Reads the adjust combined settings from EEPROM */
+void readAdjustCombined() {
+	//Adjust combined selection
+	byte adjCombPreset;
+	byte read = EEPROM.read(eeprom_adjCombPreset);
+	if ((read >= adjComb_preset1) && (read <= adjComb_preset3))
+		adjCombPreset = read;
+	else
+		adjCombPreset = adjComb_temporary;
+	//Adjust combined preset 1
+	if ((adjCombPreset == adjComb_preset1) && (EEPROM.read(eeprom_adjComb1Set) == eeprom_setValue)) {
+		adjCombDown = EEPROM.read(eeprom_adjComb1Down);
+		adjCombLeft = EEPROM.read(eeprom_adjComb1Left);
+		adjCombRight = EEPROM.read(eeprom_adjComb1Right);
+		adjCombUp = EEPROM.read(eeprom_adjComb1Up);
+		adjCombFactor = EEPROM.read(eeprom_adjComb1Factor) / 100.0;
+	}
+	//Adjust combined preset 2
+	else if ((adjCombPreset == adjComb_preset2) && (EEPROM.read(eeprom_adjComb2Set) == eeprom_setValue)) {
+		adjCombDown = EEPROM.read(eeprom_adjComb2Down);
+		adjCombLeft = EEPROM.read(eeprom_adjComb2Left);
+		adjCombRight = EEPROM.read(eeprom_adjComb2Right);
+		adjCombUp = EEPROM.read(eeprom_adjComb2Up);
+		adjCombFactor = EEPROM.read(eeprom_adjComb2Factor) / 100.0;
+	}
+	//Adjust combined preset 3
+	else if ((adjCombPreset == adjComb_preset3) && (EEPROM.read(eeprom_adjComb3Set) == eeprom_setValue)) {
+		adjCombDown = EEPROM.read(eeprom_adjComb3Down);
+		adjCombLeft = EEPROM.read(eeprom_adjComb3Left);
+		adjCombRight = EEPROM.read(eeprom_adjComb3Right);
+		adjCombUp = EEPROM.read(eeprom_adjComb3Up);
+		adjCombFactor = EEPROM.read(eeprom_adjComb3Factor) / 100.0;
+	}
+	//Load defaults
+	else {
+		adjCombDown = 0;
+		adjCombUp = 0;
+		adjCombLeft = 0;
+		adjCombRight = 0;
+		adjCombFactor = 1.0;
+	}
 }
 
 /* Reads the old settings from EEPROM */
@@ -520,7 +590,7 @@ void readEEPROM() {
 		displayMode = displayMode_thermal;
 	//Text color
 	read = EEPROM.read(eeprom_textColor);
-	if ((read >= textColor_white) && (read <= textColor_blue) )
+	if ((read >= textColor_white) && (read <= textColor_blue))
 		textColor = read;
 	else
 		textColor = textColor_white;
@@ -547,22 +617,8 @@ void readEEPROM() {
 		minMaxPoints = read;
 	else
 		minMaxPoints = minMaxPoints_disabled;
-	//Adjust combined
-	read = EEPROM.read(eeprom_adjCombSet);
-	if (read == eeprom_setValue) {
-		adjCombDown = EEPROM.read(eeprom_adjCombDown);
-		adjCombLeft = EEPROM.read(eeprom_adjCombLeft);
-		adjCombRight = EEPROM.read(eeprom_adjCombRight);
-		adjCombUp = EEPROM.read(eeprom_adjCombUp);
-		adjCombFactor = EEPROM.read(eeprom_adjCombFactor) / 100.0;
-	}
-	else {
-		adjCombDown = 0;
-		adjCombUp = 0;
-		adjCombLeft = 0;
-		adjCombRight = 0;
-		adjCombFactor = 1.0;
-	}
+	//Align combined settings
+	readAdjustCombined();
 }
 
 /* Startup procedure for the Hardware */
@@ -573,8 +629,6 @@ void initHardware() {
 	initGPIO();
 	//SPI startup
 	initSPI();
-	//Init RTC
-	setSyncProvider(getTeensy3Time);
 	//Init I2C
 	initI2C();
 	//Init Display
@@ -599,4 +653,6 @@ void initHardware() {
 	initScreenOffTimer();
 	//Disable I2C timeout
 	Wire.setDefaultTimeout(0);
+	//Init RTC
+	initRTC();
 }

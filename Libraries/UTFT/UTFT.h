@@ -78,10 +78,10 @@
 #define VGA_SILVER		0xC618
 #define VGA_GRAY		0x8410
 #define VGA_MAROON		0x8000
-#define VGA_YELLOW		0xFFE0
+#define VGA_YELLOW		0xFE40
 #define VGA_OLIVE		0x8400
 #define VGA_LIME		0x07E0
-#define VGA_AQUA		0x07FF
+#define VGA_AQUA		0xBE7F
 #define VGA_TEAL		0x0410
 #define VGA_NAVY		0x0010
 #define VGA_FUCHSIA		0xF81F
@@ -165,7 +165,7 @@ public:
 	void setBackColor(uint32_t color);
 	word getBackColor();
 	void print(char *st, int x, int y, int deg = 0);
-	void printC(String st, int x, int y, uint32_t color = VGA_WHITE);
+	void printC(String st, int x, int y, uint32_t color = VGA_BLACK);
 	void print(String st, int x, int y, int deg = 0);
 	void rotateChar(byte c, int x, int y, int pos, int deg);
 	void printNumI(long num, int x, int y, int length = 0, char filler = ' ');

@@ -1,6 +1,19 @@
 /*
-* Functions to create and display the thermal image
+*
+* CREATE - Functions to create and display the thermal image
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
+
+/* Methods*/
 
 /* Filter the image with a box blur filter (LP) */
 void boxFilter() {
@@ -40,7 +53,6 @@ void gaussianFilter() {
 		}
 	}
 }
-
 
 /* Store one package of 80 columns into RAM */
 bool savePackage(byte line, byte segment = 0) {
@@ -306,13 +318,13 @@ void createVisCombImg() {
 	if (pointsEnabled)
 		refreshTempPoints();
 
-	//Find min and max if not in manual mode and limits not locked
-	if ((agcEnabled) && (!limitsLocked))
-		limitValues();
-
 	//Find min / max position
 	if (minMaxPoints != minMaxPoints_disabled)
 		findMinMaxPositions();
+
+	//Find min and max if not in manual mode and limits not locked
+	if ((autoMode) && (!limitsLocked))
+		limitValues();
 
 	//For combined only
 	if (displayMode == displayMode_combined) {
@@ -334,7 +346,7 @@ void createVisCombImg() {
 }
 
 /* Creates a thermal image and stores it in the array */
-void createThermalImg(bool menu) {
+void createThermalImg() {
 	//Receive the temperatures over SPI
 	getTemperatures();
 	//Compensate calibration with object temp
@@ -344,8 +356,12 @@ void createThermalImg(bool menu) {
 	if (pointsEnabled)
 		refreshTempPoints();
 
+	//Find min / max position
+	if (minMaxPoints != minMaxPoints_disabled)
+		findMinMaxPositions();
+
 	//Find min and max if not in manual mode and limits not locked
-	if ((agcEnabled) && (!limitsLocked))
+	if ((autoMode) && (!limitsLocked))
 		limitValues();
 
 	//If image save, save the raw data
@@ -357,10 +373,6 @@ void createThermalImg(bool menu) {
 		boxFilter();
 	else if (filterType == filterType_gaussian)
 		gaussianFilter();
-
-	//Find min / max position
-	if (minMaxPoints != minMaxPoints_disabled)
-		findMinMaxPositions();
 
 	//Convert lepton data to RGB565 colors
 	convertColors();
@@ -391,7 +403,26 @@ void getTouchPos(int* x, int* y) {
 /* Function to add or remove a measurement point */
 void tempPointFunction(bool remove) {
 	int x, y;
+	bool removed = false;
 
+	//If remove points, check if there are some first
+	if (remove) {
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 12; j++) {
+				if (((j * 16 + i) >= 0) && ((j * 16 + i) < 192)) {
+					if (showTemp[(j * 16) + i] != 0)
+						removed = true;
+				}
+			}
+		}
+		if (!removed) {
+			showFullMessage((char*) "No points available!", true);
+			delay(1000);
+			return;
+		}
+	}
+
+redraw:
 	//Safe delay
 	delay(10);
 	//Create thermal image
@@ -400,15 +431,20 @@ void tempPointFunction(bool remove) {
 	//Create visual or combined image
 	else
 		createVisCombImg();
+
 	//Show it on the screen
-	showImage();
+	display.writeScreen(image);
 
 	//Set text color, font and background
-	display.setColor(VGA_WHITE);
+	setTextColor();
 	display.setBackColor(VGA_TRANSPARENT);
 	display.setFont(smallFont);
 	//Show current temperature points
 	showTemperatures();
+	//Display title
+	display.setFont(bigFont);
+	display.print((char*) "Select position", CENTER, 20);
+
 	//Get touched coordinates
 	getTouchPos(&x, &y);
 	//Divide through 20 to match array size
@@ -422,47 +458,70 @@ void tempPointFunction(bool remove) {
 		y = 0;
 	if (y > 11)
 		y = 11;
-	//Remove point from screen by setting it to zero
+
+	//Remove point
 	if (remove) {
+		removed = false;
 	outerloop:
 		for (int i = x - 1; i <= x + 1; i++) {
 			for (int j = y - 1; j <= y + 1; j++) {
 				if (((j * 16 + i) >= 0) && ((j * 16 + i) < 192)) {
 					if (showTemp[(j * 16) + i] != 0) {
 						showTemp[(j * 16) + i] = 0;
+						removed = true;
 						goto outerloop;
 					}
 				}
 			}
 		}
+		//Show message
+		if (removed)
+			showFullMessage((char*) "Point removed!", true);
+		else {
+			showFullMessage((char*) "Invalid position!", true);
+			delay(1000);
+			goto redraw;
+		}
 	}
-	//Mark point for refreshing in the next image
-	else
+
+	//Add point
+	else {
 		showTemp[(y * 16) + x] = 1;
+		showFullMessage((char*) "Point added!", true);
+	}
+	//Wait some time
+	delay(1000);
+}
+
+/* Calculate the x and y position for min/max out of the pixel index */
+void calculateMinMaxPoint(uint16_t* xpos, uint16_t* ypos, uint16_t pixelIndex) {
+	//Get xpos and ypos
+	*xpos = (pixelIndex % 160) * 2;
+	*ypos = (pixelIndex / 160) * 2;
+
+	//Compensate in visual or combined mode
+	if (displayMode != displayMode_thermal) {
+		*ypos = *ypos + (5 * adjCombDown) - (5 * adjCombUp);
+		*xpos = *xpos + (5 * adjCombRight) - (5 * adjCombLeft);
+	}
+
+	//Limit position
+	if (*ypos > 240)
+		*ypos = 240;
+	if (*xpos > 320)
+		*xpos = 320;
+	if (*xpos < 0)
+		*xpos = 0;
+	if (*ypos < 0)
+		*ypos = 0;
 }
 
 /* Display the minimum and maximum point on the screen */
 void displayMinMaxPoint(uint16_t pixelIndex, const char *str)
 {
-	//Get xpos and ypos
-	uint16_t xpos = (pixelIndex % 160) * 2;
-	uint16_t ypos = (pixelIndex / 160) * 2;
-
-	//Compensate in visual or combined mode
-	if (displayMode != displayMode_thermal) {
-		ypos = ypos + (5 * adjCombDown) - (5 * adjCombUp);
-		xpos = xpos + (5 * adjCombRight) - (5 * adjCombLeft);
-	}
-
-	//Limit position
-	if (ypos > 240)
-		ypos = 240;
-	if (xpos > 320)
-		xpos = 320;
-	if (xpos < 0)
-		xpos = 0;
-	if (ypos < 0)
-		ypos = 0;
+	uint16_t xpos, ypos;
+	//Calculate x and y position
+	calculateMinMaxPoint(&xpos, &ypos, pixelIndex);
 	//Draw the marker
 	display.drawLine(xpos / 2, ypos / 2, xpos / 2, ypos / 2);
 	//Draw the string

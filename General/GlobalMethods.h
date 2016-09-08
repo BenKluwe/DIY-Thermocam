@@ -1,15 +1,28 @@
 /*
-* Global method definitions, that are used firmware-wide
+*
+* GLOBAL METHODS - Global method definitions, that are used firmware-wide
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
 
-void adjustCombinedMenu(bool firstStart = false);
-void drawMessage(char*, bool small = false);
+/* Abstract methods */
+
+bool adjustCombinedMenu();
+void showFullMessage(char*, bool small = false);
 void firstStart();
 void startAltClockline(bool sdStart = false);
 void endAltClockline();
 bool tempLimits();
 float calFunction(uint16_t rawValue);
-void createThermalImg(bool menu = false);
+void createThermalImg();
 void floatToChar(char* buffer, float val);
 void showSpot();
 void showColorBar();
@@ -21,8 +34,6 @@ void timeAndDateMenu(bool firstStart = false);
 void saveRawData(bool image, char* name, uint16_t framesCaptured = 0);
 void proccessVideoFrames(uint16_t framesCaptured, char* dirname);
 void createVideoFolder(char* dirname);
-void buttonIRQ();
-void touchIRQ();
 void boxFilter();
 void gaussianFilter();
 void convertColors();
@@ -44,20 +55,20 @@ void infoScreen(String* text, bool Continue = true);
 void getTemperatures();
 void liveModeHelper();
 void selectColorScheme();
+void findMinMaxPositions();
 void changeColorScheme(byte* pos);
 void calibrationProcess(bool firstStart = false);
 void clearTemperatures();
 void tempPointFunction(bool remove = false);
 void showTemperatures();
+void calculateMinMaxPoint(uint16_t* xpos, uint16_t* ypos, uint16_t pixelIndex);
 void mainMenu();
 bool calibrate();
 void storeCalibration();
 void changeDisplayOptions(byte* pos);
 void displayInfos();
-void detachInterrupts();
-void attachInterrupts();
-void limitLock();
-void showMsg(char* msg, bool bottom = false);
+void longTouchHandler();
+void showTransMessage(char* msg, bool bottom = false);
 void createJPGFile(char* filename, char* dirname = NULL);
 void floatToBytes(uint8_t* farray, float val);
 bool extButtonPressed();
@@ -74,4 +85,3 @@ void compensateCalib();
 void checkImageSave();
 void createSDName(char* filename, bool folder = false);
 void toggleLaser(bool message = false);
-void saveScreenshot();

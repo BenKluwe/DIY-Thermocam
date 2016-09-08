@@ -1,6 +1,19 @@
 /*
-* Functions to convert Lepton raw values to absolute values
+*
+* CALIBRATION - Functions to convert Lepton raw values to absolute values
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
+
+/* Methods*/
 
 /* Converts a given Temperature in Celcius to Fahrenheit */
 float celciusToFahrenheit(float Tc) {
@@ -17,7 +30,7 @@ float fahrenheitToCelcius(float Tf) {
 /* Function to calculate temperature out of Lepton value */
 float calFunction(uint16_t rawValue) {
 	//Calculate offset out of ambient temp
-	if ((calStatus != cal_manual) && (agcEnabled) && (!limitsLocked))
+	if ((calStatus != cal_manual) && (autoMode) && (!limitsLocked))
 		calOffset = mlx90614Amb - (calSlope * 8192) + calComp;
 	//Calculate the temperature in Celcius out of the coefficients
 	float temp = (calSlope * rawValue) + calOffset;
@@ -33,7 +46,7 @@ uint16_t tempToRaw(float temp) {
 	if (tempFormat == tempFormat_fahrenheit)
 		temp = fahrenheitToCelcius(temp);
 	//Calculate offset out of ambient temp
-	if ((calStatus != cal_manual) && (agcEnabled) && (!limitsLocked))
+	if ((calStatus != cal_manual) && (autoMode) && (!limitsLocked))
 		calOffset = mlx90614Amb - (calSlope * 8192) + calComp;
 	uint16_t rawValue = (temp - calOffset) / calSlope;
 	return rawValue;
@@ -66,8 +79,8 @@ void compensateCalib() {
 	if (tempFormat == tempFormat_fahrenheit)
 		mlx90614Temp = celciusToFahrenheit(mlx90614Temp);
 
-	//Apply compensation if AGC enabled, no limited locked and standard calib
-	if ((agcEnabled) && (!limitsLocked) && (calStatus != cal_warmup)) {
+	//Apply compensation if auto mode enabled, no limited locked and standard calib
+	if ((autoMode) && (!limitsLocked) && (calStatus != cal_warmup)) {
 		//Calculate min & max
 		int16_t min = round(calFunction(minTemp));
 		int16_t max = round(calFunction(maxTemp));
@@ -79,7 +92,7 @@ void compensateCalib() {
 			calComp = mlx90614Temp - max;
 	}
 	//Calculate offset out of ambient temp
-	if ((calStatus != cal_manual) && (agcEnabled) && (!limitsLocked))
+	if ((calStatus != cal_manual) && (autoMode) && (!limitsLocked))
 		calOffset = mlx90614Amb - (calSlope * 8192) + calComp;
 }
 
@@ -214,7 +227,7 @@ void calibrationProcess(bool firstStart) {
 		if (calCorrelation < 0.5) {
 			//When in first start mode
 			if (firstStart) {
-				drawMessage((char*) "Bad calibration, try again!", true);
+				showFullMessage((char*) "Bad calibration, try again!", true);
 				delay(1000);
 			}
 			//If the user does not want to repeat, discard
@@ -228,14 +241,14 @@ void calibrationProcess(bool firstStart) {
 
 	//Show the result
 	sprintf(result, "Slope: %1.4f, offset: %.1f", calSlope, calOffset);
-	drawMessage(result);
+	showFullMessage(result);
 	delay(2000);
 
 	//Save calibration to EEPROM
 	storeCalibration();
 	//Show message if not in first start menu
 	if (firstStart == false) {
-		drawMessage((char*) "Calibration written to EEPROM!", true);
+		showFullMessage((char*) "Calibration written to EEPROM!", true);
 		delay(1000);
 	}
 	//Restore old font
@@ -246,7 +259,7 @@ void calibrationProcess(bool firstStart) {
 bool calibrate() {
 	//Still in warmup
 	if (calStatus == cal_warmup) {
-		drawMessage((char*) "Please wait for sensor warmup!", true);
+		showFullMessage((char*) "Please wait for sensor warmup!", true);
 		delay(1500);
 		return false;
 	}

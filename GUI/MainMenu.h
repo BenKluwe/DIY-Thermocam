@@ -1,12 +1,25 @@
 /*
-* Main menu
+*
+* MAIN MENU - Display the main menu with icons
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
+
+/* Methods */
 
 /* Draws the background in the main menu */
 void mainMenuBackground() {
-	display.setColor(127, 127, 127);
+	display.setColor(120, 120, 120);
 	display.fillRoundRect(6, 6, 314, 234);
-	display.setColor(153, 162, 163);
+	display.setColor(200, 200, 200);
 	display.fillRect(6, 36, 314, 180);
 	display.setColor(VGA_BLACK);
 	display.drawHLine(6, 36, 314);
@@ -23,12 +36,15 @@ void drawSelectionMenu() {
 	touchButtons.addButton(15, 188, 120, 40, (char*) "Back");
 	touchButtons.addButton(95, 132, 130, 35, (char*) "OK");
 	touchButtons.drawButtons();
+	//Border
+	display.setColor(VGA_BLUE);
+	display.drawRect(65, 57, 257, 111);
 }
 
 /* Draws the title in the main menu */
 void mainMenuTitle(char* title) {
 	display.setFont(bigFont);
-	display.setBackColor(127, 127, 127);
+	display.setBackColor(120, 120, 120);
 	display.setColor(VGA_WHITE);
 	display.print(title, CENTER, 14);
 }
@@ -40,7 +56,7 @@ void mainMenuSelection(char* selection) {
 	display.fillRect(66, 58, 257, 111);
 	//Print the text
 	display.setBackColor(VGA_WHITE);
-	display.setColor(255, 106, 0);
+	display.setColor(VGA_BLUE);
 	display.print(selection, CENTER, 77);
 }
 
@@ -50,7 +66,7 @@ void calibrationScreen(bool firstStart) {
 	if (firstStart == false) {
 		mainMenuBackground();
 		mainMenuTitle((char*)"Calibrating..");
-		display.setColor(VGA_WHITE);
+		display.setColor(VGA_BLACK);
 		display.setBackColor(153, 162, 163);
 		display.setFont(smallFont);
 		display.print((char*)"Point the camera to different", CENTER, 63);
@@ -64,10 +80,10 @@ void calibrationScreen(bool firstStart) {
 	}
 	//First start
 	else {
-		display.fillScr(127, 127, 127);
+		display.fillScr(200, 200, 200);
 		display.setFont(bigFont);
-		display.setBackColor(127, 127, 127);
-		display.setColor(VGA_WHITE);
+		display.setBackColor(200, 200, 200);
+		display.setColor(VGA_BLACK);
 		display.print((char*) "Calibrating..", CENTER, 100);
 		display.print((char*) "Status:  0%", CENTER, 140);
 	}
@@ -78,18 +94,18 @@ bool calibrationRepeat() {
 	//Title & Background
 	mainMenuBackground();
 	mainMenuTitle((char*)"Bad Calibration");
-	display.setColor(VGA_WHITE);
+	display.setColor(VGA_BLACK);
 	display.setFont(bigFont);
 	display.setBackColor(153, 162, 163);
 	display.print((char*)"Try again ?", CENTER, 66);
 	display.setFont(smallFont);
-	display.setBackColor(127, 127, 127);
+	display.setBackColor(200, 200, 200);
 	display.print((char*)"Use different calibration objects !", CENTER, 201);
 	//Draw the buttons
 	touchButtons.deleteAllButtons();
 	touchButtons.setTextFont(bigFont);
-	touchButtons.addButton(15, 106, 140, 55, (char*) "No");
 	touchButtons.addButton(165, 106, 140, 55, (char*) "Yes");
+	touchButtons.addButton(15, 106, 140, 55, (char*) "No");
 	touchButtons.drawButtons();
 	//Touch handler
 	while (true) {
@@ -97,12 +113,12 @@ bool calibrationRepeat() {
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
 			//YES
-			if (pressedButton == 1) {
+			if (pressedButton == 0) {
 				return true;
 				break;
 			}
 			//NO
-			else if (pressedButton == 0) {
+			else if (pressedButton == 1) {
 				return false;
 				break;
 			}
@@ -151,8 +167,113 @@ bool calibrationChooser() {
 	return true;
 }
 
+/* Switch the current preset menu item */
+void tempLimitsPresetSaveString(int pos) {
+	char* text = (char*) "";
+	switch (pos) {
+	case 0:
+		text = (char*) "Temporary";
+		break;
+	case 1:
+		text = (char*) "Preset 1";
+		break;
+	case 2:
+		text = (char*) "Preset 2";
+		break;
+	case 3:
+		text = (char*) "Preset 3";
+		break;
+	}
+	mainMenuSelection(text);
+}
+
+/* Menu to save the temperature limits to a preset */
+bool tempLimitsPresetSaveMenu() {
+	//Save the current position inside the menu
+	byte menuPos = 0;
+	//Background
+	mainMenuBackground();
+	//Title
+	mainMenuTitle((char*) "Select Preset");
+	//Draw the selection menu
+	drawSelectionMenu();
+	//Draw the current item
+	tempLimitsPresetSaveString(menuPos);
+	//Save the current position inside the menu
+	while (true) {
+		//Touch screen pressed
+		if (touch.touched() == true) {
+			int pressedButton = touchButtons.checkButtons(true);
+			//SELECT
+			if (pressedButton == 3) {
+				int16_t min, max;
+				switch (menuPos) {
+					//Temporary
+				case 0:
+					EEPROM.write(eeprom_minMaxPreset, minMax_temporary);
+					break;
+					//Preset 1
+				case 1:
+					min = (int16_t)round(calFunction(minTemp));
+					max = (int16_t)round(calFunction(maxTemp));
+					EEPROM.write(eeprom_minTemp1High, (min & 0xFF00) >> 8);
+					EEPROM.write(eeprom_minTemp1Low, min & 0x00FF);
+					EEPROM.write(eeprom_maxTemp1High, (max & 0xFF00) >> 8);
+					EEPROM.write(eeprom_maxTemp1Low, max & 0x00FF);
+					EEPROM.write(eeprom_minMax1Set, eeprom_setValue);
+					EEPROM.write(eeprom_minMaxPreset, minMax_preset1);
+					break;
+					//Preset 2
+				case 2:
+					min = (int16_t)round(calFunction(minTemp));
+					max = (int16_t)round(calFunction(maxTemp));
+					EEPROM.write(eeprom_minTemp2High, (min & 0xFF00) >> 8);
+					EEPROM.write(eeprom_minTemp2Low, min & 0x00FF);
+					EEPROM.write(eeprom_maxTemp2High, (max & 0xFF00) >> 8);
+					EEPROM.write(eeprom_maxTemp2Low, max & 0x00FF);
+					EEPROM.write(eeprom_minMax2Set, eeprom_setValue);
+					EEPROM.write(eeprom_minMaxPreset, minMax_preset2);
+					break;
+					//Preset 3
+				case 3:
+					min = (int16_t)round(calFunction(minTemp));
+					max = (int16_t)round(calFunction(maxTemp));
+					EEPROM.write(eeprom_minTemp3High, (min & 0xFF00) >> 8);
+					EEPROM.write(eeprom_minTemp3Low, min & 0x00FF);
+					EEPROM.write(eeprom_maxTemp3High, (max & 0xFF00) >> 8);
+					EEPROM.write(eeprom_maxTemp3Low, max & 0x00FF);
+					EEPROM.write(eeprom_minMax3Set, eeprom_setValue);
+					EEPROM.write(eeprom_minMaxPreset, minMax_preset3);
+					break;
+				}
+				return true;
+			}
+			//BACKWARD
+			else if (pressedButton == 0) {
+				if (menuPos > 0)
+					menuPos--;
+				else if (menuPos == 0)
+					menuPos = 3;
+			}
+			//FORWARD
+			else if (pressedButton == 1) {
+				if (menuPos < 3)
+					menuPos++;
+				else if (menuPos == 3)
+					menuPos = 0;
+			}
+			//BACK
+			else if (pressedButton == 2)
+				return false;
+			//Change the menu name
+			tempLimitsPresetSaveString(menuPos);
+		}
+	}
+}
+
 /* Touch Handler for the limit chooser menu */
-void limitChooserHandler() {
+bool tempLimitsManualHandler() {
+
 	//Save the old limits in case the user wants to restore them
 	uint16_t maxTemp_old = maxTemp;
 	uint16_t minTemp_old = minTemp;
@@ -163,8 +284,7 @@ void limitChooserHandler() {
 	int min, max;
 	char minC[10];
 	char maxC[10];
-	//Load old values from EEPROM if saved previously
-	loadMinMaxTemp();
+
 	//Touch handler
 	while (true) {
 		display.setFont(smallFont);
@@ -216,9 +336,12 @@ void limitChooserHandler() {
 					if (maxChange == true)
 						maxChange = false;
 				}
-				//Go back to the create image menu
+				//Go back
 				else {
-					break;
+					if (tempLimitsPresetSaveMenu())
+						return true;
+					else
+						return false;
 				}
 			}
 			//DECREASE
@@ -276,7 +399,7 @@ void limitChooserHandler() {
 			}
 			//Prepare the preview image
 			delay(10);
-			createThermalImg(true);
+			createThermalImg();
 			//Display the preview image
 			display.drawBitmap(80, 40, 160, 120, image, 1);
 		}
@@ -284,7 +407,8 @@ void limitChooserHandler() {
 }
 
 /* Select the limits in Manual Mode*/
-void limitChooser() {
+void tempLimitsManual() {
+redraw:
 	//Background & title
 	mainMenuBackground();
 	mainMenuTitle((char*) "Temp. Limits");
@@ -298,21 +422,107 @@ void limitChooser() {
 	touchButtons.drawButtons();
 	//Prepare the preview image
 	delay(10);
-	createThermalImg(true);
+	createThermalImg();
 	//Display the preview image
 	display.drawBitmap(80, 40, 160, 120, image, 1);
 	//Draw the border for the preview image
-	display.setColor(VGA_WHITE);
+	display.setColor(VGA_BLACK);
 	display.drawRect(79, 39, 241, 161);
 	//Go into the normal touch handler
-	limitChooserHandler();
+	if (!tempLimitsManualHandler())
+		goto redraw;
+}
+
+/* Switch the temperature limits preset string */
+void tempLimitsPresetsString(int pos) {
+	char* text = (char*) "";
+	switch (pos) {
+	case 0:
+		text = (char*) "New";
+		break;
+	case 1:
+		text = (char*) "Preset 1";
+		break;
+	case 2:
+		text = (char*) "Preset 2";
+		break;
+	case 3:
+		text = (char*) "Preset 3";
+		break;
+	}
+	mainMenuSelection(text);
+}
+
+/* Menu to save the temperature limits to a preset */
+bool tempLimitsPresets() {
+	//Save the current position inside the menu
+	byte tempLimitsMenuPos = EEPROM.read(eeprom_minMaxPreset);
+	//Background
+	mainMenuBackground();
+	//Title
+	mainMenuTitle((char*) "Choose Preset");
+	//Draw the selection menu
+	drawSelectionMenu();
+	//Draw the current item
+	tempLimitsPresetsString(tempLimitsMenuPos);
+	//Save the current position inside the menu
+	while (true) {
+		//Touch screen pressed
+		if (touch.touched() == true) {
+			int pressedButton = touchButtons.checkButtons(true);
+			//SELECT
+			if (pressedButton == 3) {
+				switch (tempLimitsMenuPos) {
+					//New
+				case 0:
+					tempLimitsManual();
+					return true;
+					break;
+					//Load Preset 1
+				case 1:
+					EEPROM.write(eeprom_minMaxPreset, minMax_preset1);
+					break;
+					//Load Preset 2
+				case 2:
+					EEPROM.write(eeprom_minMaxPreset, minMax_preset2);
+					break;
+					//Load Preset 3
+				case 3:
+					EEPROM.write(eeprom_minMaxPreset, minMax_preset3);
+					break;
+				}
+				//Read temperature limits from EEPROM
+				readTempLimits();
+				return true;
+			}
+			//BACKWARD
+			else if (pressedButton == 0) {
+				if (tempLimitsMenuPos > 0)
+					tempLimitsMenuPos--;
+				else if (tempLimitsMenuPos == 0)
+					tempLimitsMenuPos = 3;
+			}
+			//FORWARD
+			else if (pressedButton == 1) {
+				if (tempLimitsMenuPos < 3)
+					tempLimitsMenuPos++;
+				else if (tempLimitsMenuPos == 3)
+					tempLimitsMenuPos = 0;
+			}
+			//BACK
+			else if (pressedButton == 2)
+				return false;
+			//Change the menu name
+			tempLimitsPresetsString(tempLimitsMenuPos);
+		}
+	}
 }
 
 /* Temperature Limit Mode Selection */
 bool tempLimits() {
 	//Still in warmup, do not let the user do this
 	if (calStatus == cal_warmup) {
-		drawMessage((char*) "Please wait for sensor warmup!", true);
+		showFullMessage((char*) "Please wait for sensor warmup!", true);
 		delay(1500);
 		return true;
 	}
@@ -333,32 +543,18 @@ bool tempLimits() {
 			int pressedButton = touchButtons.checkButtons(true);
 			//AUTO
 			if (pressedButton == 0) {
-				//Enable AGC again and disable limits locked
-				agcEnabled = true;
+				//Enable auto mode again and disable limits locked
+				autoMode = true;
 				limitsLocked = false;
-
-				//Reset EEPROM
-				EEPROM.write(eeprom_minMaxSet, 0);
 				return true;
 			}
 			//MANUAL
 			else if (pressedButton == 1) {
-				//Disable AGC and limits locked
-				agcEnabled = false;
+				//Disable auto mode and limits locked
+				autoMode = false;
 				limitsLocked = false;
-
 				//Let the user choose the new limits
-				limitChooser();
-
-				//Save min and max to EEPROM
-				int16_t min = (int16_t)round(calFunction(minTemp));
-				int16_t max = (int16_t)round(calFunction(maxTemp));
-				EEPROM.write(eeprom_minTempHigh, (min & 0xFF00) >> 8);
-				EEPROM.write(eeprom_minTempLow, min & 0x00FF);
-				EEPROM.write(eeprom_maxTempHigh, (max & 0xFF00) >> 8);
-				EEPROM.write(eeprom_maxTempLow, max & 0x00FF);
-				EEPROM.write(eeprom_minMaxSet, eeprom_setValue);
-				return true;
+				return tempLimitsPresets();
 			}
 			//BACK
 			else if (pressedButton == 2)
@@ -367,8 +563,8 @@ bool tempLimits() {
 	}
 }
 
-/* Switch the current temperature menu item */
-void tempMenuString(int pos) {
+/* Temperature points menu string creation */
+void tempPointsMenuString(int pos) {
 	char* text = (char*) "";
 	switch (pos) {
 	case 0:
@@ -385,26 +581,24 @@ void tempMenuString(int pos) {
 }
 
 /* Menu to add or remove temperature points to the thermal image */
-bool tempMenu() {
+bool tempPointsMenu() {
 	//Save the current position inside the menu
 	static byte tempMenuPos = 0;
 	//Still in warmup, do not add points
 	if (calStatus == cal_warmup) {
-		drawMessage((char*) "Please wait for sensor warmup!", true);
+		showFullMessage((char*) "Please wait for sensor warmup!", true);
 		delay(1500);
 		return true;
 	}
+redraw:
 	//Background
 	mainMenuBackground();
 	//Title
 	mainMenuTitle((char*) "Temp. points");
-	//Border
-	display.setColor(255, 106, 0);
-	display.drawRect(65, 57, 257, 111);
 	//Draw the selection menu
 	drawSelectionMenu();
 	//Draw the current item
-	tempMenuString(tempMenuPos);
+	tempPointsMenuString(tempMenuPos);
 	//Save the current position inside the menu
 	while (true) {
 		//Touch screen pressed
@@ -415,24 +609,24 @@ bool tempMenu() {
 				switch (tempMenuPos) {
 					//Add point
 				case 0:
-					showMenu = false;
 					tempPointFunction();
-					showMenu = true;
 					//Enable points show
 					pointsEnabled = true;
+					goto redraw;
 					break;
 					//Remove point
 				case 1:
-					showMenu = false;
 					tempPointFunction(true);
-					showMenu = true;
+					goto redraw;
 					break;
 					//Clear all
 				case 2:
 					clearTemperatures();
+					showFullMessage((char*)"All points cleared!");
+					delay(1000);
+					goto redraw;
 					break;
 				}
-				return true;
 			}
 			//BACK
 			if (pressedButton == 2)
@@ -452,12 +646,13 @@ bool tempMenu() {
 					tempMenuPos = 0;
 			}
 			//Change the menu name
-			tempMenuString(tempMenuPos);
+			tempPointsMenuString(tempMenuPos);
 		}
 	}
+	return false;
 }
 
-/* Switch the current hot/cold color menu item */
+/* Select the color for the live mode string */
 void hotColdColorMenuString(int pos) {
 	char* text = (char*) "";
 	switch (pos) {
@@ -493,9 +688,6 @@ bool hotColdColorMenu() {
 	mainMenuBackground();
 	//Title
 	mainMenuTitle((char*) "Select color");
-	//Border
-	display.setColor(255, 106, 0);
-	display.drawRect(65, 57, 257, 111);
 	//Draw the selection menu
 	drawSelectionMenu();
 	//Draw the current item
@@ -559,9 +751,9 @@ void hotColdChooserHandler() {
 			//RESET
 			if (pressedButton == 0) {
 				if (hotColdMode == hotColdMode_cold)
-					hotColdLevel = (int16_t) round(calFunction(0.1 * (maxTemp - minTemp) + minTemp));
+					hotColdLevel = (int16_t)round(calFunction(0.1 * (maxTemp - minTemp) + minTemp));
 				if (hotColdMode == hotColdMode_hot)
-					hotColdLevel = (int16_t) round(calFunction(0.9 * (maxTemp - minTemp) + minTemp));
+					hotColdLevel = (int16_t)round(calFunction(0.9 * (maxTemp - minTemp) + minTemp));
 			}
 			//SELECT
 			else if (pressedButton == 1) {
@@ -582,7 +774,7 @@ void hotColdChooserHandler() {
 			}
 			//Prepare the preview image
 			delay(10);
-			createThermalImg(true);
+			createThermalImg();
 			//Display the preview image
 			display.drawBitmap(80, 40, 160, 120, image, 1);
 			//Display level as temperature
@@ -601,7 +793,7 @@ void hotColdChooserHandler() {
 void hotColdChooser() {
 	//Still in warmup, do not add points
 	if (calStatus == cal_warmup) {
-		drawMessage((char*) "Please wait for sensor warmup!", true);
+		showFullMessage((char*) "Please wait for sensor warmup!", true);
 		delay(1500);
 		hotColdMode = EEPROM.read(eeprom_hotColdMode);
 		return;
@@ -624,11 +816,11 @@ void hotColdChooser() {
 		hotColdLevel = (int16_t)round(calFunction(0.9 * (maxTemp - minTemp) + minTemp));
 	//Prepare the preview image
 	delay(10);
-	createThermalImg(true);
+	createThermalImg();
 	//Display the preview image
 	display.drawBitmap(80, 40, 160, 120, image, 1);
 	//Draw the border for the preview image
-	display.setColor(VGA_WHITE);
+	display.setColor(VGA_BLACK);
 	display.drawRect(79, 39, 241, 161);
 	//Go into the normal touch handler
 	hotColdChooserHandler();
@@ -656,16 +848,13 @@ void hotColdMenuString(int pos) {
 
 /* Menu to display hot or cold areas */
 bool hotColdMenu() {
-	redraw:
+redraw:
 	//Save the current position inside the menu
 	byte hotColdMenuPos = hotColdMode;
 	//Background
 	mainMenuBackground();
 	//Title
 	mainMenuTitle((char*) "Hot / Cold");
-	//Border
-	display.setColor(255, 106, 0);
-	display.drawRect(65, 57, 257, 111);
 	//Draw the selection menu
 	drawSelectionMenu();
 	//Draw the current item
@@ -684,7 +873,7 @@ bool hotColdMenu() {
 					break;
 					//Cold
 				case hotColdMode_cold:
-					hotColdMode = hotColdMode_cold;			
+					hotColdMode = hotColdMode_cold;
 					break;
 					//Hot
 				case hotColdMode_hot:
@@ -801,9 +990,6 @@ bool colorMenu() {
 	mainMenuBackground();
 	//Title
 	mainMenuTitle((char*) "Change Color");
-	//Border
-	display.setColor(255, 106, 0);
-	display.drawRect(65, 57, 257, 111);
 	//Draw the selection menu
 	drawSelectionMenu();
 	//Draw the current item
@@ -865,9 +1051,6 @@ bool modeMenu() {
 	mainMenuBackground();
 	//Title
 	mainMenuTitle((char*) "Change Mode");
-	//Border
-	display.setColor(255, 106, 0);
-	display.drawRect(65, 57, 257, 111);
 	//Draw the selection menu
 	drawSelectionMenu();
 	//Draw the current item
@@ -891,6 +1074,9 @@ bool modeMenu() {
 				//Save display mode
 				displayMode = changeDisplayMode;
 				EEPROM.write(eeprom_displayMode, displayMode);
+				//Show loading message
+				if (displayMode != displayMode_thermal)
+					showFullMessage((char*)"Please wait..", true);
 				return true;
 			}
 			//BACK
@@ -1019,9 +1205,6 @@ bool liveDispMenu() {
 	drawSelectionMenu();
 	//Rename OK button
 	touchButtons.relabelButton(3, (char*) "Switch", true);
-	//Border
-	display.setColor(255, 106, 0);
-	display.drawRect(65, 57, 257, 111);
 	//Draw the current item
 	liveDispMenuString(displayOptionsPos);
 	while (true) {
@@ -1117,12 +1300,12 @@ bool mainMenuSelect(byte pos, byte page) {
 			if (displayMode == displayMode_thermal)
 				hotColdMenu();
 			else
-				adjustCombinedMenu();
+				return adjustCombinedMenu();
 			return true;
 		}
 		//Points
 		if (pos == 2) {
-			return tempMenu();
+			return tempPointsMenu();
 		}
 	}
 	return false;
@@ -1133,8 +1316,9 @@ void drawMainMenu(byte pos) {
 	//Border
 	display.setColor(VGA_BLACK);
 	display.fillRoundRect(5, 5, 315, 235);
+	display.fillRoundRect(4, 4, 316, 236);
 	//Background
-	display.setColor(127, 127, 127);
+	display.setColor(200, 200, 200);
 	display.fillRoundRect(6, 6, 314, 234);
 	//Buttons
 	touchButtons.deleteAllButtons();
@@ -1159,7 +1343,7 @@ void drawMainMenu(byte pos) {
 	//Fourth page
 	if (pos == 3) {
 		touchButtons.addButton(23, 28, 80, 80, icon10Bitmap, icon10Colors);
-		if(displayMode == displayMode_thermal)
+		if (displayMode == displayMode_thermal)
 			touchButtons.addButton(120, 28, 80, 80, icon11_1Bitmap, icon11_1Colors);
 		else
 			touchButtons.addButton(120, 28, 80, 80, icon11_2Bitmap, icon11_2Colors);
@@ -1209,6 +1393,7 @@ void mainMenuHandler(byte* pos) {
 			//EXIT
 			if (pressedButton == 4)
 				return;
+
 			//FORWARD
 			else if (pressedButton == 5) {
 				if (*pos < 3)
@@ -1225,8 +1410,6 @@ void mainMenuHandler(byte* pos) {
 void mainMenu() {
 	//Position in the main menu
 	static byte mainMenuPos = 0;
-	//Detach the interrupts
-	detachInterrupts();
 	//Draw content
 	drawMainMenu(mainMenuPos);
 	//Touch handler - return true if exit to Main menu, otherwise false
@@ -1238,8 +1421,6 @@ void mainMenu() {
 	touchButtons.setTextFont(smallFont);
 	//Delete the old buttons
 	touchButtons.deleteAllButtons();
-	//Re-attach the interrupts
-	attachInterrupts();
 	//Disable menu marker
 	showMenu = false;
 }

@@ -1,5 +1,16 @@
 /*
-* Boot into the mass storage mode to connect the internal storage to the PC
+*
+* MASS STORAGE -  Boot into the mass storage mode to connect the internal storage to the PC
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
 
 /* Defines */
@@ -82,14 +93,14 @@ void massStorage() {
 	//Old hardware
 	if (mlx90614Version == mlx90614Version_old) {
 		//Display error msg for 1sec
-		drawMessage((char*) "Your HW does not support this!");
+		showFullMessage((char*) "Your HW does not support this!");
 		delay(1000);
 		//Go back
 		mainMenu();
 	}
 	//Other
 	else {
-		drawMessage((char*) "Disconnect USB cable to return !");
+		showFullMessage((char*) "Disconnect USB cable to return !");
 		delay(1500);
 		//Set marker
 		EEPROM.write(eeprom_massStorage, eeprom_setValue);

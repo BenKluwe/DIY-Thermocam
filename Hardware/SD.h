@@ -1,8 +1,20 @@
 /*
-* Methods to access the internal SD storage and the SPI flash chip
+*
+* SD - Methods to access the internal SD storage
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
 
 /* Variables */
+
 //Card
 Sd2Card card;
 uint32_t cardSizeBlocks;
@@ -79,7 +91,7 @@ void initSD() {
 		startAltClockline();
 		//Check if the sd card works
 		if (!sd.begin(pin_sd_cs, SPI_FULL_SPEED)) {
-			drawMessage((char*) "Init SD card failed!");
+			showFullMessage((char*) "Init SD card failed!");
 			delay(1000);
 			setDiagnostic(diag_sd);
 		}

@@ -1,5 +1,16 @@
 /*
-* Access the FLIR Lepton LWIR module
+*
+* LEPTON - Access the FLIR Lepton LWIR module
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
 
 /* Variables */
@@ -72,7 +83,7 @@ void leptonRunCalibration() {
 		}
 		//Trigger error and continue
 		if ((error) && (errorCounter > 10)) {
-			drawMessage((char*) "Lepton I2C FFC not working!");
+			showFullMessage((char*) "Lepton I2C FFC not working!");
 			delay(1000);
 			setDiagnostic(diag_lep_conf);
 			return;
@@ -117,8 +128,8 @@ void leptonSetFFCMode(bool automatic)
 	Wire.beginTransmission(0x2A);
 	while (leptonReadReg(0x2) & 0x01);
 	uint8_t length = leptonReadReg(0x6);
-	Wire.requestFrom((uint8_t) 0x2A, length);
-	
+	Wire.requestFrom((uint8_t)0x2A, length);
+
 	for (byte i = 0; i < length; i++)
 	{
 		package[i] = Wire.read();
@@ -161,7 +172,7 @@ void leptonCheckVersion() {
 	byte error = Wire.endTransmission();
 	//Lepton I2C error, continue
 	if (error != 0) {
-		drawMessage((char*) "Lepton I2C getVersion not working!");
+		showFullMessage((char*) "Lepton I2C getVersion not working!");
 		delay(1000);
 		setDiagnostic(diag_lep_conf);
 		return;
@@ -254,8 +265,8 @@ void initLepton() {
 	//Set the compensation value to zero
 	calComp = 0;
 
-	//Activate AGC
-	agcEnabled = true;
+	//Activate auto mode
+	autoMode = true;
 	//Deactivate limits Locked
 	limitsLocked = false;
 
@@ -271,7 +282,7 @@ void initLepton() {
 	leptonEndSPI();
 	//If sync not received after a second, show error message
 	if ((leptonFrame[0] & 0x0F) == 0x0F) {
-		drawMessage((char*) "Lepton SPI is not working!");
+		showFullMessage((char*) "Lepton SPI is not working!");
 		delay(1000);
 		setDiagnostic(diag_lep_data);
 	}

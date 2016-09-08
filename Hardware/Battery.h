@@ -1,6 +1,19 @@
 /*
-* Measure the battery status
+*
+* BATTERY - Measure the lithium battery status
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
+
+/* Methods */
 
 /* A method to calculate the lipo percentage out of its voltage */
 int getLipoPerc(float vol) {
@@ -56,7 +69,7 @@ void checkBattery(bool start = false) {
 	float vUSB = (batMeasure->analogRead(pin_usb_measure) * 1.5 * 3.3) / batMeasure->getMaxValue(ADC_0);
 	//If the battery gauge is not working
 	if ((vBat == -1) && (vUSB <= 1.0)) {
-		drawMessage((char*) "Battery gauge is not working!");
+		showFullMessage((char*) "Battery gauge is not working!");
 		delay(1000);
 		setDiagnostic(diag_bat);
 	}

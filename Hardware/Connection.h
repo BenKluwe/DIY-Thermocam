@@ -1,9 +1,15 @@
 /*
-* Serial Connection
 *
-* This file describes the communication protocol for the USB Serial data transmission
+* CONNECTION - Communication protocol for the USB serial data transmission
 *
-* Supported devices are: Thermal Viewer, Video Output Module, ThermoVision Software, Serial Terminal
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
 *
 */
 
@@ -31,6 +37,7 @@
 #define CMD_BATTERYSTATUS 124
 #define CMD_SETCALSLOPE   125
 #define CMD_SETCALOFFSET  126
+#define CMD_MINMAXPOS     127 
 
 //Serial frame commands
 #define CMD_RAWFRAME      150
@@ -122,7 +129,7 @@ void sendConfigData() {
 	else
 		Serial.write(pointsEnabled);
 	//Send adjust bar allowed
-	Serial.write((agcEnabled) && (!limitsLocked));
+	Serial.write((autoMode) && (!limitsLocked));
 }
 
 /* Sends the visual image as JPEG */
@@ -223,6 +230,26 @@ void sendShutterMode() {
 /* Send the battery status in percentage */
 void sendBatteryStatus() {
 	Serial.write(batPercentage);
+}
+
+/* Sends the position of the min/max value */
+void sendMinMaxPos() {
+	uint16_t minXPos, minYPos, maxXPos, maxYPos;
+	//Get raw temperatures
+	getTemperatures();
+	//Find min and max value
+	findMinMaxPositions();
+	//Calculate their position
+	calculateMinMaxPoint(&minXPos, &minYPos, minTempPos);
+	calculateMinMaxPoint(&maxXPos, &maxYPos, maxTempPos);
+	//Minimum temp x position
+	Serial.write(minXPos);
+	//Minimum temp y position
+	Serial.write(minYPos);
+	//Maximum temp x position
+	Serial.write(maxXPos);
+	//Maximum temp y position
+	Serial.write(maxYPos);
 }
 
 /* Sends a raw frame */
@@ -348,6 +375,10 @@ bool serialHandler() {
 		//Send ACK
 		Serial.write(CMD_SETCALSLOPE);
 		break;
+		//Send min/max position
+	case CMD_MINMAXPOS:
+		sendMinMaxPos();
+		break;
 		//Send raw frame
 	case CMD_RAWFRAME:
 		sendFrame(false);
@@ -412,8 +443,8 @@ void serialOutput() {
 		if (pointsEnabled)
 			refreshTempPoints();
 		//Find min and max if not in manual mode and limits not locked
-		if ((agcEnabled) && (!limitsLocked))
-				limitValues();
+		if ((autoMode) && (!limitsLocked))
+			limitValues();
 
 		//Check button press if not in terminal mode
 		if (extButtonPressed())
@@ -430,13 +461,11 @@ void serialOutput() {
 
 /* Tries to establish a connection to a thermal viewer or video output module*/
 void serialConnect() {
-	//Disable interrupts
-	detachInterrupts();
 	//Set camera resolution to medium
 	changeCamRes(VC0706_320x240);
 
 	//Show message
-	drawMessage((char*)"Serial connection detected !");
+	showFullMessage((char*)"Serial connection detected !");
 	display.print((char*) "Touch screen to return", CENTER, 170);
 	delay(1000);
 
@@ -460,7 +489,7 @@ void serialConnect() {
 	enableScreenLight();
 
 	//Show message
-	drawMessage((char*)"Connection ended, return..");
+	showFullMessage((char*)"Connection ended, return..");
 	delay(1000);
 
 	//Clear all serial buffers
@@ -482,8 +511,6 @@ void serialConnect() {
 		shutterMode = shutterMode_auto;
 	}
 
-	//Re-Enable interrupts
-	attachInterrupts();
 	//Disable video mode
 	videoSave = false;
 }

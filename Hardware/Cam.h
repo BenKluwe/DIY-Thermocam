@@ -1,5 +1,16 @@
 /*
-* Access the VC0706 camera module and display JPEGs
+*
+* CAM - Access the VC0706 camera module and display JPEGs
+*
+* DIY-Thermocam Firmware
+*
+* GNU General Public License v3.0
+*
+* Copyright by Max Ritter
+*
+* http://www.diy-thermocam.net
+* https://github.com/maxritter/DIY-Thermocam
+*
 */
 
 /* Variables */
@@ -158,7 +169,7 @@ void initCamera() {
 		cam.setCompression(95);
 		delay(1000);
 		if (!cam.takePicture()) {
-			drawMessage((char*) "Visual camera is not working!");
+			showFullMessage((char*) "Visual camera is not working!");
 			delay(1000);
 			setDiagnostic(diag_camera);
 		}

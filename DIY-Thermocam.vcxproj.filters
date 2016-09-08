@@ -702,4 +702,7 @@
       <Filter>_libraries\Metro</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="LICENSE.txt" />
+  </ItemGroup>
 </Project>
