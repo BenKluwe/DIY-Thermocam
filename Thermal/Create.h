@@ -443,7 +443,7 @@ redraw:
 	showTemperatures();
 	//Display title
 	display.setFont(bigFont);
-	display.print((char*) "Select position", CENTER, 20);
+	display.print((char*) "Select position", CENTER, 210);
 
 	//Get touched coordinates
 	getTouchPos(&x, &y);

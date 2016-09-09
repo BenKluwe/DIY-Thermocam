@@ -11,7 +11,7 @@ UTFT_Buttons::UTFT_Buttons(UTFT *ptrUTFT, Touchscreen *ptrTouch) {
 	_color_hilite = VGA_BLUE;
 	_font_text = NULL;
 	_font_symbol = NULL;
-	setButtonColors(VGA_BLACK, VGA_BLACK, VGA_GRAY, VGA_RED,
+	setButtonColors(VGA_BLACK, VGA_BLACK, VGA_BLACK, VGA_BLUE,
 		VGA_WHITE);
 }
 
@@ -317,6 +317,6 @@ void UTFT_Buttons::setButtonColors(word atxt, word iatxt, word brd, word brdhi,
 	_color_text = atxt;
 	_color_text_inactive = iatxt;
 	_color_background = back;
-	_color_border = VGA_BLACK;
-	_color_hilite = VGA_BLUE;
+	_color_border = brd;
+	_color_hilite = brdhi;
 }

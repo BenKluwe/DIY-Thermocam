@@ -256,12 +256,12 @@ void calibrationProcess(bool firstStart) {
 }
 
 /* Calibration */
-bool calibrate() {
+bool calibration() {
 	//Still in warmup
 	if (calStatus == cal_warmup) {
 		showFullMessage((char*) "Please wait for sensor warmup!", true);
 		delay(1500);
-		return false;
+		return true;
 	}
 	//If there is a calibration
 	else if (calStatus == cal_manual)

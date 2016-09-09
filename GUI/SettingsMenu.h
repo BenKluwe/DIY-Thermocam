@@ -58,6 +58,13 @@ void adjustCombinedGUI(bool firstStart = false) {
 	display.drawLine(14, 5, 14, 25);
 	display.drawLine(15, 5, 15, 25);
 	display.drawLine(16, 5, 16, 25);
+	//Refresh
+	display.drawCircle(160, 120, 10);
+	display.drawCircle(160, 120, 11);
+	display.setFont(bigFont);
+	display.setBackColor(VGA_TRANSPARENT);
+	display.print('R', CENTER, 112);
+	display.setFont(smallFont);
 	//In first start, do not print the close symbol
 	if (!firstStart) {
 		//Color for close
@@ -294,6 +301,11 @@ void adjustCombinedNewMenuHandler(bool firstStart = false) {
 					EEPROM.write(eeprom_adjCombPreset, adjComb_preset1);
 					return;
 				}
+			}
+			//Refresh
+			else if ((x >= 50) && (x <= 270) && (y >= 50) && (y <= 210)) {
+				adjustCombinedLoading();
+				adjustCombinedRefresh();
 			}
 			//Exit without saving, not in first start
 			else if ((x >= 270) && (x <= 320) && (y >= 0) && (y <= 50) && (!firstStart)) {

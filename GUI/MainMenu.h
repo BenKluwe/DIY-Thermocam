@@ -67,10 +67,10 @@ void calibrationScreen(bool firstStart) {
 		mainMenuBackground();
 		mainMenuTitle((char*)"Calibrating..");
 		display.setColor(VGA_BLACK);
-		display.setBackColor(153, 162, 163);
+		display.setBackColor(200, 200, 200);
 		display.setFont(smallFont);
 		display.print((char*)"Point the camera to different", CENTER, 63);
-		display.print((char*)"hot and cold object in the area.", CENTER, 96);
+		display.print((char*)"hot and cold objects in the area.", CENTER, 96);
 		touchButtons.deleteAllButtons();
 		touchButtons.setTextFont(bigFont);
 		touchButtons.addButton(90, 188, 140, 40, (char*) "Abort");
@@ -96,10 +96,9 @@ bool calibrationRepeat() {
 	mainMenuTitle((char*)"Bad Calibration");
 	display.setColor(VGA_BLACK);
 	display.setFont(bigFont);
-	display.setBackColor(153, 162, 163);
+	display.setBackColor(200, 200, 200);
 	display.print((char*)"Try again ?", CENTER, 66);
 	display.setFont(smallFont);
-	display.setBackColor(200, 200, 200);
 	display.print((char*)"Use different calibration objects !", CENTER, 201);
 	//Draw the buttons
 	touchButtons.deleteAllButtons();
@@ -563,27 +562,8 @@ bool tempLimits() {
 	}
 }
 
-/* Temperature points menu string creation */
-void tempPointsMenuString(int pos) {
-	char* text = (char*) "";
-	switch (pos) {
-	case 0:
-		text = (char*) "Add point";
-		break;
-	case 1:
-		text = (char*) "Rem. point";
-		break;
-	case 2:
-		text = (char*) "Clear all";
-		break;
-	}
-	mainMenuSelection(text);
-}
-
 /* Menu to add or remove temperature points to the thermal image */
 bool tempPointsMenu() {
-	//Save the current position inside the menu
-	static byte tempMenuPos = 0;
 	//Still in warmup, do not add points
 	if (calStatus == cal_warmup) {
 		showFullMessage((char*) "Please wait for sensor warmup!", true);
@@ -596,57 +576,40 @@ redraw:
 	//Title
 	mainMenuTitle((char*) "Temp. points");
 	//Draw the selection menu
-	drawSelectionMenu();
-	//Draw the current item
-	tempPointsMenuString(tempMenuPos);
+	touchButtons.deleteAllButtons();
+	touchButtons.setTextFont(smallFont);
+	touchButtons.addButton(15, 45, 90, 122, (char*) "Add");
+	touchButtons.addButton(115, 45, 90, 122, (char*) "Remove");
+	touchButtons.addButton(215, 45, 90, 122, (char*) "Clear");
+	touchButtons.addButton(15, 188, 120, 40, (char*) "Back");
+	touchButtons.drawButtons();
 	//Save the current position inside the menu
 	while (true) {
 		//Touch screen pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
-			//SELECT
-			if (pressedButton == 3) {
-				switch (tempMenuPos) {
-					//Add point
-				case 0:
-					tempPointFunction();
-					//Enable points show
-					pointsEnabled = true;
-					goto redraw;
-					break;
-					//Remove point
-				case 1:
-					tempPointFunction(true);
-					goto redraw;
-					break;
-					//Clear all
-				case 2:
-					clearTemperatures();
-					showFullMessage((char*)"All points cleared!");
-					delay(1000);
-					goto redraw;
-					break;
-				}
+			//Add
+			if (pressedButton == 0) {
+				tempPointFunction();
+				//Enable points show
+				pointsEnabled = true;
+				goto redraw;
+			}
+			//Remove
+			else if (pressedButton == 1) {
+				tempPointFunction(true);
+				goto redraw;
+			}
+			//Clear
+			else if (pressedButton == 2) {
+				clearTemperatures();
+				showFullMessage((char*)"All points cleared!");
+				delay(1000);
+				goto redraw;
 			}
 			//BACK
-			if (pressedButton == 2)
+			else if (pressedButton == 3)
 				return false;
-			//BACKWARD
-			else if (pressedButton == 0) {
-				if (tempMenuPos > 0)
-					tempMenuPos--;
-				else if (tempMenuPos == 0)
-					tempMenuPos = 2;
-			}
-			//FORWARD
-			else if (pressedButton == 1) {
-				if (tempMenuPos < 2)
-					tempMenuPos++;
-				else if (tempMenuPos == 2)
-					tempMenuPos = 0;
-			}
-			//Change the menu name
-			tempPointsMenuString(tempMenuPos);
 		}
 	}
 	return false;
@@ -683,7 +646,13 @@ void hotColdColorMenuString(int pos) {
 /* Menu to display the color in hot/cold color mode */
 bool hotColdColorMenu() {
 	//Save the current position inside the menu
-	static byte hotColdColorMenuPos = 0;
+	byte hotColdColorMenuPos;
+	if (hotColdMode == hotColdMode_hot)
+		hotColdColorMenuPos = 2;
+	else if (hotColdMode == hotColdMode_cold)
+		hotColdColorMenuPos = 4;
+	else
+		hotColdColorMenuPos = 0;
 	//Background
 	mainMenuBackground();
 	//Title
@@ -826,93 +795,63 @@ void hotColdChooser() {
 	hotColdChooserHandler();
 }
 
-/* Switch the current hot/cold menu item */
-void hotColdMenuString(int pos) {
-	char* text = (char*) "";
-	switch (pos) {
-		//Disabled
-	case 0:
-		text = (char*) "Disabled";
-		break;
-		//Cold
-	case 1:
-		text = (char*) "Cold";
-		break;
-		//Hot
-	case 2:
-		text = (char*) "Hot";
-		break;
-	}
-	mainMenuSelection(text);
-}
-
 /* Menu to display hot or cold areas */
 bool hotColdMenu() {
 redraw:
-	//Save the current position inside the menu
-	byte hotColdMenuPos = hotColdMode;
 	//Background
 	mainMenuBackground();
 	//Title
 	mainMenuTitle((char*) "Hot / Cold");
 	//Draw the selection menu
-	drawSelectionMenu();
-	//Draw the current item
-	hotColdMenuString(hotColdMenuPos);
+	touchButtons.deleteAllButtons();
+	touchButtons.setTextFont(smallFont);
+	touchButtons.addButton(15, 45, 90, 122, (char*) "Hot");
+	touchButtons.addButton(115, 45, 90, 122, (char*) "Cold");
+	touchButtons.addButton(215, 45, 90, 122, (char*) "Disabled");
+	touchButtons.addButton(15, 188, 120, 40, (char*) "Back");
+	touchButtons.drawButtons();
 	//Save the current position inside the menu
 	while (true) {
 		//Touch screen pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
-			//SELECT
-			if (pressedButton == 3) {
-				switch (hotColdMenuPos) {
-					//Disabled
-				case hotColdMode_disabled:
-					hotColdMode = hotColdMode_disabled;
-					break;
-					//Cold
-				case hotColdMode_cold:
-					hotColdMode = hotColdMode_cold;
-					break;
-					//Hot
-				case hotColdMode_hot:
-					hotColdMode = hotColdMode_hot;
-					break;
-				}
-				//For hot and cold
-				if (hotColdMode != hotColdMode_disabled) {
-					//Choose the color
-					if (hotColdColorMenu())
-						//Set the limit
-						hotColdChooser();
-					//Go back
-					else
-						goto redraw;
-				}
+			//Hot
+			if (pressedButton == 0) {
+				hotColdMode = hotColdMode_hot;
+				//Choose the color
+				if (hotColdColorMenu())
+					//Set the limit
+					hotColdChooser();
+				//Go back
+				else
+					goto redraw;
 				//Write to EEPROM
+				EEPROM.write(eeprom_hotColdMode, hotColdMode);
+				return true;
+			}
+			//Cold
+			if (pressedButton == 1) {
+				hotColdMode = hotColdMode_cold;
+				//Choose the color
+				if (hotColdColorMenu())
+					//Set the limit
+					hotColdChooser();
+				//Go back
+				else
+					goto redraw;
+				//Write to EEPROM
+				EEPROM.write(eeprom_hotColdMode, hotColdMode);
+				return true;
+			}
+			//Disabled
+			if (pressedButton == 2) {
+				hotColdMode = hotColdMode_disabled;
 				EEPROM.write(eeprom_hotColdMode, hotColdMode);
 				return true;
 			}
 			//BACK
 			if (pressedButton == 2)
 				return false;
-			//BACKWARD
-			else if (pressedButton == 0) {
-				if (hotColdMenuPos > 0)
-					hotColdMenuPos--;
-				else if (hotColdMenuPos == 0)
-					hotColdMenuPos = 2;
-			}
-			//FORWARD
-			else if (pressedButton == 1) {
-				if (hotColdMenuPos < 2)
-					hotColdMenuPos++;
-				else if (hotColdMenuPos == 2)
-					hotColdMenuPos = 0;
-			}
-			//Change the menu name
-			hotColdMenuString(hotColdMenuPos);
 		}
 	}
 }
@@ -1026,78 +965,54 @@ bool colorMenu() {
 	}
 }
 
-/* Switch the current display mode menu item */
-void modeMenuString(int pos) {
-	char* text = (char*) "";
-	switch (pos) {
-	case 0:
-		text = (char*) "Thermal";
-		break;
-	case 1:
-		text = (char*) "Visual";
-		break;
-	case 2:
-		text = (char*) "Combined";
-		break;
-	}
-	mainMenuSelection(text);
-}
-
 /* Choose the current display mode */
 bool modeMenu() {
-	//Save the current position inside the menu
-	byte changeDisplayMode = displayMode;
 	//Background
 	mainMenuBackground();
 	//Title
 	mainMenuTitle((char*) "Change Mode");
 	//Draw the selection menu
-	drawSelectionMenu();
-	//Draw the current item
-	modeMenuString(changeDisplayMode);
+	touchButtons.deleteAllButtons();
+	touchButtons.setTextFont(smallFont);
+	touchButtons.addButton(15, 45, 90, 122, (char*) "Thermal");
+	touchButtons.addButton(115, 45, 90, 122, (char*) "Visual");
+	touchButtons.addButton(215, 45, 90, 122, (char*) "Combined");
+	touchButtons.addButton(15, 188, 120, 40, (char*) "Back");
+	touchButtons.drawButtons();
 	while (true) {
 		//Touch screen pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
-			//SELECT
-			if (pressedButton == 3) {
-				//Change camera resolution
-				if (changeDisplayMode == displayMode_thermal)
-					changeCamRes(VC0706_640x480);
-				else
-					changeCamRes(VC0706_160x120);
-				//Activate or deactivate combined mode
-				if (changeDisplayMode != displayMode_combined)
-					combinedDecomp = false;
-				else
-					combinedDecomp = true;
-				//Save display mode
-				displayMode = changeDisplayMode;
-				EEPROM.write(eeprom_displayMode, displayMode);
-				//Show loading message
-				if (displayMode != displayMode_thermal)
-					showFullMessage((char*)"Please wait..", true);
+			//Thermal
+			if (pressedButton == 0) {
+				showFullMessage((char*)"Please wait..", true);
+				changeCamRes(VC0706_640x480);
+				combinedDecomp = false;
+				displayMode = displayMode_thermal;
+				EEPROM.write(eeprom_displayMode, displayMode_thermal);
 				return true;
 			}
-			//BACK
-			if (pressedButton == 2)
-				return false;
-			//BACKWARD
-			else if (pressedButton == 0) {
-				if (changeDisplayMode > 0)
-					changeDisplayMode--;
-				else if (changeDisplayMode == 0)
-					changeDisplayMode = 2;
-			}
-			//FORWARD
+			//Visual
 			else if (pressedButton == 1) {
-				if (changeDisplayMode < 2)
-					changeDisplayMode++;
-				else if (changeDisplayMode == 2)
-					changeDisplayMode = 0;
+				showFullMessage((char*)"Please wait..", true);
+				changeCamRes(VC0706_160x120);
+				combinedDecomp = false;
+				displayMode = displayMode_visual;
+				EEPROM.write(eeprom_displayMode, displayMode_visual);
+				return true;
 			}
-			//Change the menu name
-			modeMenuString(changeDisplayMode);
+			//Combined
+			else if (pressedButton == 2) {
+				showFullMessage((char*)"Please wait..", true);
+				changeCamRes(VC0706_160x120);
+				combinedDecomp = true;
+				displayMode = displayMode_combined;
+				EEPROM.write(eeprom_displayMode, displayMode_combined);
+				return true;
+			}
+			//Back
+			if (pressedButton == 3)
+				return false;
 		}
 	}
 }
@@ -1293,7 +1208,7 @@ bool mainMenuSelect(byte pos, byte page) {
 	if (page == 3) {
 		//Calibration
 		if (pos == 0) {
-			return calibrate();
+			return calibration();
 		}
 		//Isotherm or adjust visual
 		if (pos == 1) {

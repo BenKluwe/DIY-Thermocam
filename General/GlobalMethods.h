@@ -63,7 +63,7 @@ void tempPointFunction(bool remove = false);
 void showTemperatures();
 void calculateMinMaxPoint(uint16_t* xpos, uint16_t* ypos, uint16_t pixelIndex);
 void mainMenu();
-bool calibrate();
+bool calibration();
 void storeCalibration();
 void changeDisplayOptions(byte* pos);
 void displayInfos();
