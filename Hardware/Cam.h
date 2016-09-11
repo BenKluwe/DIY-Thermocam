@@ -321,6 +321,10 @@ void transferVisualImage() {
 
 	//Get frame length
 	uint16_t jpglen = cam.frameLength();
+	//Transfer frame length
+	Serial.write((jpglen & 0xFF00) >> 8);
+	Serial.write(jpglen & 0x00FF);
+
 	//Store length
 	uint16_t length = jpglen;
 	//Transfer data

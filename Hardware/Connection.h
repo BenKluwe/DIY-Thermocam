@@ -23,7 +23,7 @@
 #define CMD_RAWLIMITS     110
 #define CMD_RAWDATA       111
 #define CMD_CONFIGDATA    112
-#define CMD_VISUALIMG     113
+#define CMD_VISUALIMGLOW  113
 #define CMD_CALIBDATA     114
 #define CMD_SPOTTEMP      115
 #define CMD_SETTIME       116
@@ -38,6 +38,8 @@
 #define CMD_SETCALSLOPE   125
 #define CMD_SETCALOFFSET  126
 #define CMD_MINMAXPOS     127 
+#define CMD_VISUALIMGHIGH 128
+#define CMD_FWVERSION     129
 
 //Serial frame commands
 #define CMD_RAWFRAME      150
@@ -252,6 +254,11 @@ void sendMinMaxPos() {
 	Serial.write(maxYPos);
 }
 
+/* Send the current firmware version */
+void sendFWVersion() {
+	Serial.write(fwVersion);
+}
+
 /* Sends a raw frame */
 void sendFrame(bool color) {
 	Serial.write(sendCmd);
@@ -305,8 +312,8 @@ bool serialHandler() {
 	case CMD_CONFIGDATA:
 		sendConfigData();
 		break;
-		//Send visual image
-	case CMD_VISUALIMG:
+		//Send low visual imahe
+	case CMD_VISUALIMGLOW:
 		sendVisualImg();
 		break;
 		//Send calibration data
@@ -378,6 +385,16 @@ bool serialHandler() {
 		//Send min/max position
 	case CMD_MINMAXPOS:
 		sendMinMaxPos();
+		break;
+		//Send high visual image
+	case CMD_VISUALIMGHIGH:
+		changeCamRes(VC0706_640x480);
+		sendVisualImg();
+		changeCamRes(VC0706_320x240);
+		break;
+		//Send firmware version
+	case CMD_FWVERSION:
+		sendFWVersion();
 		break;
 		//Send raw frame
 	case CMD_RAWFRAME:
