@@ -305,6 +305,70 @@ void convertColors() {
 	}
 }
 
+/* Calculates the fill pixel for visual/combined */
+void calcFillPixel(uint16_t x, uint16_t y) {
+	uint16_t pixel;
+	byte red, green, blue;
+
+	//Combined - set to darker thermal
+	if (displayMode == displayMode_combined) {
+		//Get the thermal image color
+		pixel = image[x + (y * 160)];
+		//And extract the RGB values out of it
+		byte redT = (pixel & 0xF800) >> 8;
+		byte greenT = (pixel & 0x7E0) >> 3;
+		byte blueT = (pixel & 0x1F) << 3;
+		//Mix both
+		red = (byte)redT * (1 - adjCombAlpha) + 127 * adjCombAlpha;
+		green = (byte)greenT * (1 - adjCombAlpha) + 127 * adjCombAlpha;
+		blue = (byte)blueT * (1 - adjCombAlpha) + 127 * adjCombAlpha;
+	}
+	//Visual - set to black
+	else {
+		red = 0;
+		green = 0;
+		blue = 0;
+	}
+
+	//Set image to that calculated RGB565 value
+	pixel = (((red & 248) | green >> 5) << 8)
+		| ((green & 28) << 3 | blue >> 3);
+	//Save
+	image[x + (y * 160)] = pixel;
+}
+
+/* Fill out the edges in combined or visual mode */
+void fillEdges() {
+	//Fill the edges
+	uint16_t  x, y;
+
+	//Top & Bottom edges
+	for (x = 0; x < 160; x++) {
+		//Top edge
+		for (y = 0; y < (5 * adjCombDown); y++) {
+			calcFillPixel(x, y);
+		}
+
+		//Bottom edge
+		for (y = 119; y > (119 - (5 * adjCombUp)); y--) {
+			calcFillPixel(x, y);
+		}
+	}
+
+	//Left & right edges
+	for (y = 5 * adjCombDown; y < (120 - (5 * adjCombUp)); y++) {
+		//Left edge
+		for (x = 0; x < (5 * adjCombRight); x++) {
+			calcFillPixel(x, y);
+		}
+
+		//Right edge
+		for (x = 159; x > (159 - (5 * adjCombLeft)); x--) {
+			calcFillPixel(x, y);
+		}
+	}
+}
+
 /* Create the visual or combined image display */
 void createVisCombImg() {
 	//Send capture command
@@ -337,12 +401,11 @@ void createVisCombImg() {
 		convertColors();
 	}
 
-	//Resize the image
-	resizeOptical();
-	//Move the image
-	moveOptical();
 	//Get the visual image and decompress it combined
 	getVisualImage();
+
+	//Fill the edges
+	fillEdges();
 }
 
 /* Creates a thermal image and stores it in the array */
@@ -499,12 +562,6 @@ void calculateMinMaxPoint(uint16_t* xpos, uint16_t* ypos, uint16_t pixelIndex) {
 	*xpos = (pixelIndex % 160) * 2;
 	*ypos = (pixelIndex / 160) * 2;
 
-	//Compensate in visual or combined mode
-	if (displayMode != displayMode_thermal) {
-		*ypos = *ypos + (5 * adjCombDown) - (5 * adjCombUp);
-		*xpos = *xpos + (5 * adjCombRight) - (5 * adjCombLeft);
-	}
-
 	//Limit position
 	if (*ypos > 240)
 		*ypos = 240;
@@ -551,20 +608,20 @@ void showTemperatures() {
 			if (showTemp[(y * 16) + x] != 0) {
 				xpos = x * 20;
 				ypos = y * 20;
-				//Compensate in visual or combined mode
-				if (displayMode != displayMode_thermal) {
-					ypos = ypos + (5 * adjCombDown) - (5 * adjCombUp);
-					xpos = xpos + (5 * adjCombRight) - (5 * adjCombLeft);
-				}
+
 				if (ypos <= 12)
 					ypos = 13;
+
 				display.print((char*) ".", xpos, ypos - 10);
 				xpos -= 22;
+
 				if (xpos < 0)
 					xpos = 0;
 				ypos += 6;
+
 				if (ypos > 239)
 					ypos = 239;
+
 				display.printNumF(calFunction(showTemp[(y * 16) + x]), 2, xpos, ypos);
 			}
 		}

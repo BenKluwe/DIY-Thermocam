@@ -27,116 +27,7 @@ void* jdwork;
 JDEC jd;
 IODEV iodev;
 
-//Combined mode for decompressor
-bool combinedDecomp = false;
-
 /* Methods */
-
-//Resize the pixels of the optical image
-void resizePixels(unsigned short* pixels, int w1, int h1, int w2, int h2) {
-	//Calculate the ratio
-	int x_ratio = (int)((w1 << 16) / w2) + 1;
-	int y_ratio = (int)((h1 << 16) / h2) + 1;
-	int x2, y2;
-	for (int i = 0; i < h2; i++) {
-		for (int j = 0; j < w2; j++) {
-			x2 = ((j * x_ratio) >> 16);
-			y2 = ((i * y_ratio) >> 16);
-			pixels[(i * w1) + j] = pixels[(y2 * w1) + x2];
-		}
-	}
-	//Set the other pixels to zero
-	for (int j = 0; j < h2; j++) {
-		for (int i = w2; i < w1; i++) {
-			pixels[i + (j * 160)] = 65535;
-		}
-	}
-	for (int j = h2; j < h1; j++) {
-		for (int i = 0; i < w1; i++) {
-			pixels[i + (j * 160)] = 65535;
-		}
-	}
-}
-
-/* Move the optical image down by one pixel */
-void moveOpticalDown() {
-	//First for all pixels
-	for (int col = 0; col < 160; col++)
-		for (int row = 119; row > 0; row--)
-			image[col + (row * 160)] = image[col + ((row - 1) * 160)];
-	//And then fill the last one with white
-	for (int col = 0; col < 160; col++)
-		image[col] = 65535;
-}
-
-/* Move the optical image up by one pixel */
-void moveOpticalUp() {
-	//First for all pixels
-	for (int col = 0; col < 160; col++)
-		for (int row = 0; row < 119; row++)
-			image[col + (row * 160)] = image[col + ((row + 1) * 160)];
-	//And then fill the last one with white
-	for (int col = 0; col < 160; col++)
-		image[col + (119 * 160)] = 65535;
-}
-
-/* Move the optical image right by one pixel */
-void moveOpticalRight() {
-	//First for all pixels
-	for (int col = 159; col > 0; col--)
-		for (int row = 0; row < 120; row++)
-			image[col + (row * 160)] = image[col - 1 + (row * 160)];
-	//And then fill the last one with white
-	for (int row = 0; row < 120; row++)
-		image[row * 160] = 65535;
-}
-
-/* Move the optical image left by one pixel */
-void moveOpticalLeft() {
-	//First for all pixels
-	for (int col = 0; col < 159; col++)
-		for (int row = 0; row < 120; row++)
-			image[col + (row * 160)] = image[col + 1 + (row * 160)];
-	//And then fill the last one with white
-	for (int row = 0; row < 120; row++)
-		image[159 + (row * 160)] = 65535;
-}
-
-/* A method to move the optical image in each direction */
-void moveOptical() {
-	//Left
-	for (int i = 0; i < (adjCombLeft * 5); i++) {
-		moveOpticalLeft();
-	}
-	//Right
-	for (int i = 0; i < (adjCombRight * 5); i++) {
-		moveOpticalRight();
-	}
-	//Down
-	for (int i = 0; i < (adjCombDown * 5); i++) {
-		moveOpticalDown();
-	}
-	//Up
-	for (int i = 0; i < (adjCombUp * 5); i++) {
-		moveOpticalUp();
-	}
-}
-
-/* Resize the optical image */
-void resizeOptical() {
-	uint16_t newWidth = round(adjCombFactor * 160);
-	uint16_t newHeight = round(adjCombFactor * 120);
-	resizePixels(image, 160, 120, newWidth, newHeight);
-	uint16_t rightMove = round((160 - newWidth) / 2.0);
-	//Move the image down
-	for (int i = 0; i < rightMove; i++) {
-		moveOpticalRight();
-	}
-	uint16_t downMove = round((120 - newHeight) / 2.0);
-	for (int i = 0; i < downMove; i++) {
-		moveOpticalDown();
-	}
-}
 
 /* Change the resolution of the device */
 void changeCamRes(byte size) {
@@ -185,48 +76,65 @@ void initCamera() {
 unsigned int output_func(JDEC * jd, void * bitmap, JRECT * rect) {
 	//Help Variables
 	byte redV, greenV, blueV, redT, greenT, blueT, red, green, blue;
-	unsigned short pixel;
+	unsigned short pixel, x, y, imagepos, count;
 	unsigned short * bmp = (unsigned short *)bitmap;
-	unsigned short x, y;
-	unsigned short i = 0;
-	//Go through the image
+	count = 0;
+	//Go through the visual image
 	for (y = rect->top; y <= rect->bottom; y++) {
-		for (x = rect->left; x <= rect->right; x++) {
-			//Write into the array with transparency if combined activated
-			if (combinedDecomp) {
-				//Get the visual image color
-				pixel = bmp[i++];
-				//And extract the RGB values out of it
-				redV = (pixel & 0xF800) >> 8;
-				greenV = (pixel & 0x7E0) >> 3;
-				blueV = (pixel & 0x1F) << 3;
-				//Get the thermal image color
-				if (mlx90614Version == mlx90614Version_old)
-					pixel = image[(159 - x) + (y * 160)];
-				else
-					pixel = image[x + (y * 160)];
-				//And extract the RGB values out of it
-				redT = (pixel & 0xF800) >> 8;
-				greenT = (pixel & 0x7E0) >> 3;
-				blueT = (pixel & 0x1F) << 3;
-				//Mix both
-				red = redT * 0.5 + redV * 0.5;
-				green = greenT * 0.5 + greenV * 0.5;
-				blue = blueT * 0.5 + blueV * 0.5;
-				//Set image to that calculated RGB value
-				if (mlx90614Version == mlx90614Version_old)
-					image[(159 - x) + (y * 160)] = (((red & 248) | green >> 5) << 8)
-					| ((green & 28) << 3 | blue >> 3);
-				else
-					image[x + (y * 160)] = (((red & 248) | green >> 5) << 8)
-					| ((green & 28) << 3 | blue >> 3);
-			}
-			//Write into the array if combined not activated
-			else {
-				if (mlx90614Version == mlx90614Version_old)
-					image[(159 - x) + (y * 160)] = bmp[i++];
-				else
-					image[x + (y * 160)] = bmp[i++];
+
+		//Check if we draw inside the screen on y position
+		if (((y + (5 * adjCombDown) <= 119) && (y - (5 * adjCombUp) >= 0))) {
+
+			for (x = rect->left; x <= rect->right; x++) {
+
+				//Check if we draw inside the screen on x position
+				if ((x + (5 * adjCombRight) <= 159) && (x - (5 * adjCombLeft) >= 0)) {
+
+					//Get the image position
+					if (mlx90614Version == mlx90614Version_old)
+						imagepos = (159 - x) + (y * 160);
+					else
+						imagepos = x + (y * 160);
+					//Do the visual alignment
+					imagepos += 5 * adjCombRight;
+					imagepos -= 5 * adjCombLeft;
+					imagepos += 5 * adjCombDown * 160;
+					imagepos -= 5 * adjCombUp * 160;
+
+					//Create combined pixel out of thermal and visual
+					if (displayMode == displayMode_combined) {
+						//Get the visual image color
+						pixel = bmp[count++];
+						//And extract the RGB values out of it
+						redV = (pixel & 0xF800) >> 8;
+						greenV = (pixel & 0x7E0) >> 3;
+						blueV = (pixel & 0x1F) << 3;
+
+						//Get the thermal image color
+						pixel = image[imagepos];
+						//And extract the RGB values out of it
+						redT = (pixel & 0xF800) >> 8;
+						greenT = (pixel & 0x7E0) >> 3;
+						blueT = (pixel & 0x1F) << 3;
+
+						//Mix both
+						red = redT * (1 - adjCombAlpha) + redV * adjCombAlpha;
+						green = greenT * (1 - adjCombAlpha) + greenV * adjCombAlpha;
+						blue = blueT * (1 - adjCombAlpha) + blueV * adjCombAlpha;
+
+						//Set the pixel to the calculated RGB565 value
+						pixel = (((red & 248) | green >> 5) << 8)
+							| ((green & 28) << 3 | blue >> 3);
+						
+					}
+
+					//Set pixel to visual image only
+					else 
+						pixel = bmp[count++];
+
+					//Write to image buffer
+					image[imagepos] = pixel;
+				}
 			}
 		}
 	}

@@ -119,7 +119,7 @@
 #define eeprom_adjComb1Right    122
 #define eeprom_adjComb1Up       123
 #define eeprom_adjComb1Down     124
-#define eeprom_adjComb1Factor   125
+#define eeprom_adjComb1Alpha    125
 #define eeprom_adjComb1Set      126
 #define eeprom_minMaxPoints     127
 #define eeprom_screenOffTime    128
@@ -134,13 +134,13 @@
 #define eeprom_adjComb2Right    140
 #define eeprom_adjComb2Up       141
 #define eeprom_adjComb2Down     142
-#define eeprom_adjComb2Factor   143
+#define eeprom_adjComb2Alpha    143
 #define eeprom_adjComb2Set      144
 #define eeprom_adjComb3Left     145
 #define eeprom_adjComb3Right    146
 #define eeprom_adjComb3Up       147
 #define eeprom_adjComb3Down     148
-#define eeprom_adjComb3Factor   149
+#define eeprom_adjComb3Alpha    149
 #define eeprom_firstStart       150
 #define eeprom_liveHelper       151
 #define eeprom_adjComb3Set      152
