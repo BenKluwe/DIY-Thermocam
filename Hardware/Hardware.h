@@ -386,36 +386,20 @@ void checkFWUpgrade() {
 			clearEEPROM();
 			//Show message and wait
 			showFullMessage((char*)"FW update completed, pls restart!");
-			while (true);
 		}
 		//Upgrade
 		else if (fwVersion > eepromVersion) {
-			//If coming from a firmware version smaller than 2.00
-			if (eepromVersion < 200) {
-				//Clear EEPROM
+			//Clear EEPROM if coming from a firmware version smaller than 2.00
+			if (eepromVersion < 200)
 				clearEEPROM();
-				//Show message and wait
-				showFullMessage((char*)"FW update completed, pls restart!");
-				while (true);
-			}
-				
-			//Clear adjust combined settings when coming from FW smaller than 2.13
-			if (eepromVersion < 213) {
-				EEPROM.write(eeprom_adjCombPreset, adjComb_temporary);
-				EEPROM.write(eeprom_adjComb1Set, 0);
-				EEPROM.write(eeprom_adjComb2Set, 0);
-				EEPROM.write(eeprom_adjComb3Set, 0);
-			}
-			showFullMessage((char*)"FW update completed!");
-			delay(1000);
+			showFullMessage((char*)"FW update completed, pls restart!");
 		}
 		//Downgrade
-		else {
-			showFullMessage((char*)"FW downgrade completed!");
-			delay(1000);
-		}
+		else
+			showFullMessage((char*)"FW downgrade completed, pls restart!");
 		//Set EEPROM firmware version to current one
 		EEPROM.write(eeprom_fwVersion, fwVersion);
+		while (true);
 	}
 }
 
@@ -489,7 +473,7 @@ void readAdjustCombined() {
 		adjCombLeft = EEPROM.read(eeprom_adjComb1Left);
 		adjCombRight = EEPROM.read(eeprom_adjComb1Right);
 		adjCombUp = EEPROM.read(eeprom_adjComb1Up);
-		adjCombAlpha = EEPROM.read(eeprom_adjComb1Alpha) / 100.0;
+		adjCombFactor = EEPROM.read(eeprom_adjComb1Factor) / 100.0;
 	}
 	//Adjust combined preset 2
 	else if ((adjCombPreset == adjComb_preset2) && (EEPROM.read(eeprom_adjComb2Set) == eeprom_setValue)) {
@@ -497,7 +481,7 @@ void readAdjustCombined() {
 		adjCombLeft = EEPROM.read(eeprom_adjComb2Left);
 		adjCombRight = EEPROM.read(eeprom_adjComb2Right);
 		adjCombUp = EEPROM.read(eeprom_adjComb2Up);
-		adjCombAlpha = EEPROM.read(eeprom_adjComb2Alpha) / 100.0;
+		adjCombFactor = EEPROM.read(eeprom_adjComb2Factor) / 100.0;
 	}
 	//Adjust combined preset 3
 	else if ((adjCombPreset == adjComb_preset3) && (EEPROM.read(eeprom_adjComb3Set) == eeprom_setValue)) {
@@ -505,7 +489,7 @@ void readAdjustCombined() {
 		adjCombLeft = EEPROM.read(eeprom_adjComb3Left);
 		adjCombRight = EEPROM.read(eeprom_adjComb3Right);
 		adjCombUp = EEPROM.read(eeprom_adjComb3Up);
-		adjCombAlpha = EEPROM.read(eeprom_adjComb3Alpha) / 100.0;
+		adjCombFactor = EEPROM.read(eeprom_adjComb3Factor) / 100.0;
 	}
 	//Load defaults
 	else {
@@ -513,7 +497,7 @@ void readAdjustCombined() {
 		adjCombUp = 0;
 		adjCombLeft = 0;
 		adjCombRight = 0;
-		adjCombAlpha = 0.5;
+		adjCombFactor = 1.0;
 	}
 }
 

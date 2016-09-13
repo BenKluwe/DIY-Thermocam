@@ -121,7 +121,7 @@ float calComp;
 long calTimer;
 
 //Adjust combined image
-float adjCombAlpha;
+float adjCombFactor;
 byte adjCombLeft;
 byte adjCombRight;
 byte adjCombUp;

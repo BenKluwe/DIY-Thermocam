@@ -519,20 +519,12 @@ bool tempLimitsPresets() {
 
 /* Temperature Limit Mode Selection */
 bool tempLimits() {
-	//Do not show in visual mode
-	if (displayMode == displayMode_visual) {
-		showFullMessage((char*) "No use in visual mode", true);
-		delay(1500);
-		return false;
-	}
-
 	//Still in warmup, do not let the user do this
 	if (calStatus == cal_warmup) {
 		showFullMessage((char*) "Please wait for sensor warmup!", true);
 		delay(1500);
 		return true;
 	}
-
 	//Title & Background
 	mainMenuBackground();
 	mainMenuTitle((char*)"Temp. Limits");
@@ -931,13 +923,6 @@ void colorMenuString(int pos) {
 
 /* Choose the applied color scale */
 bool colorMenu() {
-	//Do not show in visual mode
-	if (displayMode == displayMode_visual) {
-		showFullMessage((char*) "No use in visual mode", true);
-		delay(1500);
-		return false;
-	}
-
 	//Save the current position inside the menu
 	byte changeColorPos = colorScheme;
 	//Background
@@ -1002,6 +987,7 @@ bool modeMenu() {
 			if (pressedButton == 0) {
 				showFullMessage((char*)"Please wait..", true);
 				changeCamRes(VC0706_640x480);
+				combinedDecomp = false;
 				displayMode = displayMode_thermal;
 				EEPROM.write(eeprom_displayMode, displayMode_thermal);
 				return true;
@@ -1010,6 +996,7 @@ bool modeMenu() {
 			else if (pressedButton == 1) {
 				showFullMessage((char*)"Please wait..", true);
 				changeCamRes(VC0706_160x120);
+				combinedDecomp = false;
 				displayMode = displayMode_visual;
 				EEPROM.write(eeprom_displayMode, displayMode_visual);
 				return true;
@@ -1018,6 +1005,7 @@ bool modeMenu() {
 			else if (pressedButton == 2) {
 				showFullMessage((char*)"Please wait..", true);
 				changeCamRes(VC0706_160x120);
+				combinedDecomp = true;
 				displayMode = displayMode_combined;
 				EEPROM.write(eeprom_displayMode, displayMode_combined);
 				return true;

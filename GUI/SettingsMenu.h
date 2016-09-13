@@ -17,11 +17,8 @@
 
 /* Draw the GUI elements for the adjust combined menu */
 void adjustCombinedGUI(bool firstStart = false) {
-	//Color and font
+	//Color for elements
 	setTextColor();
-	display.setFont(bigFont);
-	display.setBackColor(VGA_TRANSPARENT);
-
 	//Down arrow
 	display.drawLine(149, 225, 159, 235);
 	display.drawLine(150, 225, 160, 235);
@@ -50,12 +47,24 @@ void adjustCombinedGUI(bool firstStart = false) {
 	display.drawLine(315, 119, 305, 129);
 	display.drawLine(315, 120, 305, 130);
 	display.drawLine(315, 121, 305, 131);
-
-	//Refresh screen
-	display.print('R', 5, 5);
-	//Alpha level
-	display.print('A', 5, 225);
-
+	//Decrease
+	display.drawLine(5, 224, 25, 224);
+	display.drawLine(5, 225, 25, 225);
+	display.drawLine(5, 226, 25, 226);
+	//Increase
+	display.drawLine(5, 14, 25, 14);
+	display.drawLine(5, 15, 25, 15);
+	display.drawLine(5, 16, 25, 16);
+	display.drawLine(14, 5, 14, 25);
+	display.drawLine(15, 5, 15, 25);
+	display.drawLine(16, 5, 16, 25);
+	//Refresh
+	display.drawCircle(160, 120, 10);
+	display.drawCircle(160, 120, 11);
+	display.setFont(bigFont);
+	display.setBackColor(VGA_TRANSPARENT);
+	display.print('R', CENTER, 112);
+	display.setFont(smallFont);
 	//In first start, do not print the close symbol
 	if (!firstStart) {
 		//Color for close
@@ -77,9 +86,6 @@ void adjustCombinedGUI(bool firstStart = false) {
 	display.drawLine(304, 235, 314, 215);
 	display.drawLine(305, 235, 315, 215);
 	display.drawLine(306, 235, 316, 215);
-
-	//Restore old font
-	display.setFont(smallFont);
 }
 
 /* Refresh the screen content in adjust combined menu */
@@ -155,7 +161,7 @@ bool adjustCombinedPresetSaveMenu() {
 					EEPROM.write(eeprom_adjComb1Right, adjCombRight);
 					EEPROM.write(eeprom_adjComb1Up, adjCombUp);
 					EEPROM.write(eeprom_adjComb1Down, adjCombDown);
-					EEPROM.write(eeprom_adjComb1Alpha, round(adjCombAlpha * 100.0));
+					EEPROM.write(eeprom_adjComb1Factor, round(adjCombFactor * 100.0));
 					EEPROM.write(eeprom_adjComb1Set, eeprom_setValue);
 					EEPROM.write(eeprom_adjCombPreset, adjComb_preset1);
 					break;
@@ -165,7 +171,7 @@ bool adjustCombinedPresetSaveMenu() {
 					EEPROM.write(eeprom_adjComb2Right, adjCombRight);
 					EEPROM.write(eeprom_adjComb2Up, adjCombUp);
 					EEPROM.write(eeprom_adjComb2Down, adjCombDown);
-					EEPROM.write(eeprom_adjComb2Alpha, round(adjCombAlpha * 100.0));
+					EEPROM.write(eeprom_adjComb2Factor, round(adjCombFactor * 100.0));
 					EEPROM.write(eeprom_adjComb2Set, eeprom_setValue);
 					EEPROM.write(eeprom_adjCombPreset, adjComb_preset2);
 					break;
@@ -175,7 +181,7 @@ bool adjustCombinedPresetSaveMenu() {
 					EEPROM.write(eeprom_adjComb3Right, adjCombRight);
 					EEPROM.write(eeprom_adjComb3Up, adjCombUp);
 					EEPROM.write(eeprom_adjComb3Down, adjCombDown);
-					EEPROM.write(eeprom_adjComb3Alpha, round(adjCombAlpha * 100.0));
+					EEPROM.write(eeprom_adjComb3Factor, round(adjCombFactor * 100.0));
 					EEPROM.write(eeprom_adjComb3Set, eeprom_setValue);
 					EEPROM.write(eeprom_adjCombPreset, adjComb_preset3);
 					break;
@@ -215,33 +221,25 @@ void adjustCombinedNewMenuHandler(bool firstStart = false) {
 			TS_Point p = touch.getPoint();
 			uint16_t x = p.x;
 			uint16_t y = p.y;
-			//Reset
+			//Increment
 			if ((x >= 0) && (x <= 50) && (y >= 0) && (y <= 50)) {
-				adjustCombinedLoading();
-				adjCombDown = 0;
-				adjCombUp = 0;
-				adjCombLeft = 0;
-				adjCombRight = 0;
-				adjCombAlpha = 0.5;
-				adjustCombinedRefresh();
+				if (adjCombFactor < 1.0) {
+					adjustCombinedLoading();
+					adjCombFactor += 0.05;
+					adjustCombinedRefresh();
+				}
 			}
-			//Alpha level
+			//Decrement
 			else if ((x >= 0) && (x <= 50) && (y >= 190) && (y <= 240)) {
-				char buffer[20];
-				if(adjCombAlpha <  0.7)
-					adjCombAlpha += 0.1;
-				else
-					adjCombAlpha = 0.3;
-				sprintf(buffer, "Alpha set to %.1f", adjCombAlpha);
-				display.setFont(bigFont);
-				setTextColor();
-				display.print(buffer, CENTER, 110);
-				display.setFont(smallFont);
-				adjustCombinedRefresh();
+				if (adjCombFactor > 0.5) {
+					adjustCombinedLoading();
+					adjCombFactor -= 0.05;
+					adjustCombinedRefresh();
+				}
 			}
 			//Left
 			else if ((x >= 0) && (x <= 50) && (y >= 95) && (y <= 145)) {
-				if (adjCombLeft < 5) {
+				if (adjCombLeft < 10) {
 					adjustCombinedLoading();
 					if (adjCombRight > 0)
 						adjCombRight -= 1;
@@ -252,7 +250,7 @@ void adjustCombinedNewMenuHandler(bool firstStart = false) {
 			}
 			//Right
 			else if ((x >= 270) && (x <= 320) && (y >= 95) && (y <= 145)) {
-				if (adjCombRight < 5) {
+				if (adjCombRight < 10) {
 					adjustCombinedLoading();
 					if (adjCombLeft > 0)
 						adjCombLeft -= 1;
@@ -263,7 +261,7 @@ void adjustCombinedNewMenuHandler(bool firstStart = false) {
 			}
 			//Up
 			else if ((x >= 135) && (x <= 185) && (y >= 0) && (y <= 50)) {
-				if (adjCombUp < 5) {
+				if (adjCombUp < 10) {
 					adjustCombinedLoading();
 					if (adjCombDown > 0)
 						adjCombDown -= 1;
@@ -274,7 +272,7 @@ void adjustCombinedNewMenuHandler(bool firstStart = false) {
 			}
 			//Down
 			else if ((x >= 135) && (x <= 185) && (y >= 190) && (y <= 240)) {
-				if (adjCombDown < 5) {
+				if (adjCombDown < 10) {
 					adjustCombinedLoading();
 					if (adjCombUp > 0)
 						adjCombUp -= 1;
@@ -298,7 +296,7 @@ void adjustCombinedNewMenuHandler(bool firstStart = false) {
 					EEPROM.write(eeprom_adjComb1Right, adjCombRight);
 					EEPROM.write(eeprom_adjComb1Up, adjCombUp);
 					EEPROM.write(eeprom_adjComb1Down, adjCombDown);
-					EEPROM.write(eeprom_adjComb1Alpha, round(adjCombAlpha * 100.0));
+					EEPROM.write(eeprom_adjComb1Factor, round(adjCombFactor * 100.0));
 					EEPROM.write(eeprom_adjComb1Set, eeprom_setValue);
 					EEPROM.write(eeprom_adjCombPreset, adjComb_preset1);
 					return;
@@ -325,13 +323,14 @@ void adjustCombinedNewMenu(bool firstStart = false) {
 	//Prepare the preview image
 	byte displayMode_old = displayMode;
 	displayMode = displayMode_combined;
+	combinedDecomp = true;
 	changeCamRes(VC0706_160x120);
 	//Load the defaults
 	adjCombDown = 0;
 	adjCombUp = 0;
 	adjCombLeft = 0;
 	adjCombRight = 0;
-	adjCombAlpha = 0.5;
+	adjCombFactor = 1.0;
 	//Show the preview image
 	adjustCombinedRefresh(firstStart);
 	//Run the handler and 
@@ -340,6 +339,8 @@ void adjustCombinedNewMenu(bool firstStart = false) {
 	showFullMessage((char*) "Please wait..");
 	//Restore the old mode
 	displayMode = displayMode_old;
+	if (displayMode != displayMode_combined)
+		combinedDecomp = false;
 	if (displayMode == displayMode_thermal)
 		changeCamRes(VC0706_640x480);
 }
@@ -367,7 +368,7 @@ void adjustCombinedString(int pos) {
 /* Menu to save the adjust combined settings to a preset */
 bool adjustCombinedMenu() {
 	//Save the current position inside the menu
-	byte adjCombMenuPos = 0;
+	byte adjCombMenuPos = EEPROM.read(eeprom_adjCombPreset);
 	//Background
 	mainMenuBackground();
 	//Title

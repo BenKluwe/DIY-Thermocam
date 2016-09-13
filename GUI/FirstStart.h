@@ -129,11 +129,11 @@ void combinedAlignmentScreen() {
 	String text[7];
 	text[0] = "Combined Alignment";
 	text[1] = "In the next screen, you can";
-	text[2] = "align the visual image on";
-	text[3] = "top of the thermal image. Press";
-	text[4] = "'R' to reset the adjustment, 'A'";
-	text[5] = "to change the alpha transparency";
-	text[6] = "and touch the middle to refresh.";
+	text[2] = "align the thermal image on";
+	text[3] = "top of the visual image. Use";
+	text[4] = "the buttons to increment,";
+	text[5] = "decremenet or move the thermal";
+	text[6] = "image for a best fit of both.";
 	infoScreen(text);
 	//Set color scheme to rainbow
 	colorMap = colorMap_rainbow;
