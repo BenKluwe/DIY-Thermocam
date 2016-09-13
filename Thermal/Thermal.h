@@ -479,11 +479,7 @@ void liveModeInit() {
 		changeCamRes(VC0706_640x480);
 	else
 		changeCamRes(VC0706_160x120);
-	//Activate or deactivate combined mode
-	if (displayMode != displayMode_combined)
-		combinedDecomp = false;
-	else
-		combinedDecomp = true;
+	//Attach the Button interrupt
 	attachInterrupt(pin_button, buttonIRQ, RISING);
 	//Attach the Touch interrupt
 	attachInterrupt(pin_touch_irq, touchIRQ, FALLING);
