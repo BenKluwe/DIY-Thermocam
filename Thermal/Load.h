@@ -31,7 +31,6 @@ byte* dayStorage;
 byte* hourStorage;
 byte* minuteStorage;
 byte* secondStorage;
-//Buffer for the resulting filename
 
 //Buffer for the single elements
 char yearBuf[] = "2016";
@@ -40,6 +39,7 @@ char dayBuf[] = "31";
 char hourBuf[] = "23";
 char minuteBuf[] = "60";
 char secondBuf[] = "60";
+
 //Save how many different elements we have
 byte yearnum = 0;
 byte monthnum = 0;
@@ -47,6 +47,7 @@ byte daynum = 0;
 byte hournum = 0;
 byte minutenum = 0;
 byte secondnum = 0;
+
 //Keep track how many images are on the SDCard
 int imgCount = 0;
 
@@ -222,113 +223,6 @@ void loadRawData(char* filename, char* dirname) {
 	sdFile.close();
 	//Switch clock back
 	endAltClockline();
-}
-
-/* Loads an image from the SDCard and prints it on screen */
-void openImage(char* filename, byte* choice) {
-	//Show message on screen
-	showFullMessage((char*) "Please wait, image is loading..");
-	//Display raw data
-	if (filename[15] == 'D') {
-		//Load Raw data
-		loadRawData(filename);
-		//Display Raw Data
-		displayRawData();
-	}
-	//Load bitmap
-	else if (filename[15] == 'B') {
-		loadBMPImage(filename);
-	}
-	//Unsupported file type
-	else {
-		showFullMessage((char*) "Unsupported file type!");
-		delay(1000);
-		return;
-	}
-	//Create string for time and date
-	char nameStr[20] = {
-		//Day
-		filename[6], filename[7], '.',
-		//Month
-		filename[4], filename[5], '.',
-		//Year
-		filename[0], filename[1], filename[2], filename[3], ' ',
-		//Hour
-		filename[8], filename[9], ':',
-		//Minute
-		filename[10], filename[11], ':',
-		//Second
-		filename[12], filename[13], '\0'
-	};
-	//Display GUI
-	displayGUI(imgCount, nameStr);
-
-	//Wait for touch press
-	while (true) {
-		if (loadTouchHandler(true, filename, choice, imgCount))
-			break;
-	}
-}
-
-/* Get the number of frames in the video */
-uint16_t getVideoFrameNumber(char* dirname) {
-	uint16_t videoCounter = 0;
-	bool exists;
-	char filename[] = "00000.DAT";
-	//Switch Clock to Alternative
-	startAltClockline(true);
-	//Go into the folder
-	sd.chdir(dirname);
-	//Look how many frames we have
-	while (true) {
-		//Get the frame name
-		frameFilename(filename, videoCounter);
-		//Check frame existance
-		exists = sd.exists(filename);
-		//Raise counter
-		if (exists)
-			videoCounter++;
-		//Leave
-		else
-			break;
-	}
-	//Switch Clock back to Standard
-	endAltClockline();
-	return videoCounter;
-}
-
-/* Play a video from the internal storage */
-void playVideo(char* dirname, byte* choice) {
-	//Help variables
-	uint16_t numberOfFrames = getVideoFrameNumber(dirname);
-	char filename[] = "00000.DAT";
-	char buffer[14];
-
-	//Play forever
-	while (true) {
-		//Go through the frames
-		for (int i = 0; i < numberOfFrames; i++) {
-			//Switch Clock to Alternative
-			startAltClockline(true);
-			//Get the frame name
-			frameFilename(filename, i);
-			//Go into the folder
-			sd.chdir(dirname);
-			//Switch Clock back to Standard
-			endAltClockline();
-			//Load Raw data
-			loadRawData(filename);
-			//Display Raw Data
-			displayRawData();
-			//Create string
-			sprintf(buffer, "%5d / %-5d", i + 1, numberOfFrames);
-			//Display GUI
-			displayGUI(imgCount, buffer);
-			//Wait for touch press
-			if (loadTouchHandler(false, filename, choice, imgCount, dirname))
-				return;
-		}
-	}
 }
 
 /* A method to choose the right yearStorage */
@@ -599,21 +493,27 @@ bool secondChoose(bool* seconds, char* filename) {
 /* Checks if the file is an image*/
 bool isImage(char* filename) {
 	bool isImg;
+
 	//Switch Clock to Alternative
 	startAltClockline(true);
+	//Open file
 	sdFile.open(filename, O_READ);
+
 	//Check if it is a file
 	if (sdFile.isFile())
 		isImg = true;
+
 	//Otherwise it is a video
 	else {
 		//Delete the ending
 		filename[14] = '\0';
 		isImg = false;
 	}
+
 	sdFile.close();
 	//Switch Clock back to Standard
 	endAltClockline();
+
 	return isImg;
 }
 
@@ -697,10 +597,13 @@ void checkFileEnding(bool* check, char* filename) {
 bool findFile(char* filename, bool next, bool restart, int* position = 0, char* compare = NULL) {
 	bool found = false;
 	int counter = 0;
+
 	//Start SD Transmission
 	startAltClockline(restart);
+
 	//Get filenames from SD Card - one after another and a maximum of maxFiles
 	while (sdFile.openNext(sd.vwd(), O_READ)) {
+
 		//Either folder for video or file with specific size for single image
 		if (checkFileValidity()) {
 			//Extract the filename into the buffers
@@ -740,9 +643,11 @@ bool findFile(char* filename, bool next, bool restart, int* position = 0, char* 
 				}
 			}
 		}
+
 		//Close the file
 		sdFile.close();
 	}
+
 	//End SD Transmission
 	endAltClockline();
 	//Return result
@@ -915,6 +820,53 @@ MinuteLabel:
 	sdFile.close();
 }
 
+/* Delete image / video function */
+bool loadDelete(char* filename, int* pos) {
+	//Image
+	if (isImage(filename))
+		deleteImage(filename);
+	//Video
+	else
+		deleteVideo(filename);
+	//Clear all previous data
+	clearData();
+	//Search files
+	searchFiles();
+	//If there are no files left, return
+	if (imgCount == 0) {
+		showFullMessage((char*) "No images/videos found!");
+		delay(1000);
+		return false;
+	}
+	//Decrease by one if the last image/video was deleted
+	if (*pos > (imgCount - 1))
+		*pos = imgCount - 1;
+	//Find the name of the next file
+	findFile(filename, false, true, pos);
+	return true;
+}
+
+/* Find image / video function */
+void loadFind(char* filename, int* pos) {
+	//If there is only one image
+	if (imgCount == 1) {
+		showFullMessage((char*) "Only one image available");
+		delay(1000);
+		return;
+	}
+	//Clear all previous data
+	clearData();
+	//Search files
+	searchFiles();
+	//Let the user choose a new file
+	chooseFile(filename);
+	isImage(filename);
+	char compare[20];
+	strncpy(compare, filename, 20);
+	//Find the new file position
+	findFile(filename, false, true, pos, compare);
+}
+
 /* Alloc space for the different arrays*/
 void loadAlloc() {
 	yearStorage = (uint16_t*)calloc(maxFiles, sizeof(uint16_t));
@@ -948,8 +900,40 @@ void loadDeAlloc() {
 	free(secondStorage);
 }
 
+/* Interrupt handler for the load touch menu */
+void loadTouchIRQ() {
+	//Get touch coordinates 
+	TS_Point p = touch.getPoint();
+	uint16_t x = p.x;
+	uint16_t y = p.y;
+
+	//Find
+	if ((x >= 15) && (x <= 80) && (y >= 15) && (y <= 60))
+		loadTouch = loadTouch_find;
+
+	//Delete
+	else if ((x >= 200) && (x <= 305) && (y >= 180) && (y <= 225))
+		loadTouch = loadTouch_delete;
+
+	//Previous
+	else if ((x >= 0) && (x <= 40) && (y >= 100) && (y <= 140) && (imgCount != 1))
+		loadTouch = loadTouch_previous;
+
+	//Next
+	else if ((x >= 280) && (x <= 319) && (y >= 100) && (y <= 140) && (imgCount != 1))
+		loadTouch = loadTouch_next;
+
+	//Exit
+	else if ((x >= 240) && (x <= 305) && (y >= 15) && (y <= 60))
+		loadTouch = loadTouch_exit;
+
+	//Convert
+	else if ((x >= 15) && (x < 140) && (y >= 180) && (y <= 225))
+		loadTouch = loadTouch_convert;
+}
+
 /* Main entry point for loading images/videos*/
-void loadThermal() {
+void load() {
 	//Old hardware
 	if (mlx90614Version == mlx90614Version_old) {
 		showFullMessage((char*) "Checking SD card..");
@@ -991,61 +975,40 @@ void loadThermal() {
 	int pos = imgCount - 1;
 	findFile(filename, false, true, &pos);
 	bool exit = false;
-	byte choice;
+
+	//New touch interrupt
+	detachInterrupt(pin_touch_irq);	
+
 	//Main loop
-	while (true){
+	while (true) {
+
+		//Disable decision marker
+		loadTouch = loadTouch_none;
 
 		//Load image
 		if (isImage(filename))
-			openImage(filename, &choice);
+			openImage(filename, imgCount);
 		//Play video
 		else
-			playVideo(filename, &choice);
+			playVideo(filename, imgCount);
 
 		//Touch actions
-		switch (choice) {
+		switch (loadTouch) {
+
 			//Find
-		case 1:
-			//If there is only one image
-			if (imgCount == 1) {
-				showFullMessage((char*) "Only one image available");
-				delay(1000);
-				break;
-			}
-			//Clear all previous data
-			clearData();
-			//Search files
-			searchFiles();
-			//Let the user choose a new file
-			chooseFile(filename);
-			isImage(filename);
-			char compare[20];
-			strncpy(compare, filename, 20);
-			//Find the new file position
-			findFile(filename, false, true, &pos, compare);
+		case loadTouch_find:
+			loadFind(filename, &pos);
 			break;
 
-			//Delete image
-		case 2:
-			//Clear all previous data
-			clearData();
-			//Search files
-			searchFiles();
-			//If there are no files left, return
-			if (imgCount == 0) {
-				showFullMessage((char*) "No images/videos found!");
-				delay(1000);
+			//Delete
+		case loadTouch_delete:
+			if (!loadDelete(filename, &pos))
 				exit = true;
-			}
-			//Decrease by one if the last image/video was deleted
-			if (pos > (imgCount - 1))
-				pos = imgCount - 1;
-			//Find the name of the next file
-			findFile(filename, false, true, &pos);
 			break;
 
-			//Previous image
-		case 3:
+			//Previous
+		case loadTouch_previous:
+			showFullMessage((char*) "Loading..");
 			if (!findFile(filename, true, false)) {
 				findFile(filename, true, true);
 				pos = 0;
@@ -1054,8 +1017,9 @@ void loadThermal() {
 				pos++;
 			break;
 
-			//Next image
-		case 4:
+			//Next
+		case loadTouch_next:
+			showFullMessage((char*) "Loading..");
 			if (pos == 0)
 				pos = imgCount - 1;
 			else
@@ -1064,10 +1028,26 @@ void loadThermal() {
 			break;
 
 			//Exit
-		case 5:
+		case loadTouch_exit:
 			exit = true;
 			break;
+
+			//Convert
+		case loadTouch_convert:
+			//Image
+			if (isImage(filename))
+				convertImage(filename);
+			//Video
+			else
+				convertVideo(filename);
+			break;
 		}
+
+		//Wait for touch release
+		if (touch.capacitive)
+			while (touch.touched());
+		else
+			while (!digitalRead(pin_touch_irq));
 
 		//Leave
 		if (exit)
@@ -1090,4 +1070,7 @@ void loadThermal() {
 
 	//Restore the rest from EEPROM
 	readEEPROM();
+
+	//Restore old touch handler
+	attachInterrupt(pin_touch_irq, touchIRQ, FALLING);
 }

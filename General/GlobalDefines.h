@@ -214,4 +214,19 @@
 #define imgSave_set      2
 #define imgSave_create   3
 
+//Video save marker
+#define videoSave_disabled   0
+#define videoSave_menu       1
+#define videoSave_recording  2
+#define videoSave_processing 3
+
+//Load touch decision marker
+#define loadTouch_none     0
+#define loadTouch_find     1
+#define loadTouch_delete   2
+#define loadTouch_previous 3
+#define loadTouch_next     4
+#define loadTouch_exit     5
+#define loadTouch_convert  6
+
 

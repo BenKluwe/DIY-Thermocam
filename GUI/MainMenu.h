@@ -1188,7 +1188,7 @@ bool mainMenuSelect(byte pos, byte page) {
 	if (page == 1) {
 		//Load menu
 		if (pos == 0) {
-			loadThermal();
+			load();
 			return true;
 		}
 		//File Transfer
@@ -1318,9 +1318,10 @@ void mainMenuHandler(byte* pos) {
 					*pos = 3;
 			}
 			//EXIT
-			if (pressedButton == 4)
+			if (pressedButton == 4) {
+				showFullMessage((char*)"Please wait..", true);
 				return;
-
+			}
 			//FORWARD
 			else if (pressedButton == 5) {
 				if (*pos < 3)

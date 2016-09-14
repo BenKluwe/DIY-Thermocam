@@ -307,15 +307,18 @@ void proccessVideoFrames(uint16_t framesCaptured, char* dirname) {
 	display.setBackColor(200, 200, 200);
 	display.setFont(bigFont);
 	display.setColor(VGA_BLUE);
-	display.print((char*)"Converting video", CENTER, 30);
+	display.print((char*)"Video conversion", CENTER, 30);
 	display.setFont(smallFont);
 	display.setColor(VGA_BLACK);
-	display.print((char*)"Press push button to stop converting", CENTER, 80);
-	display.print((char*)"Touch to toggle screen backlight", CENTER, 120);
+	display.print((char*)"Converts all .DAT to .BMP frames", CENTER, 80);
+	display.print((char*)"Press button to abort the process", CENTER, 120);
 	sprintf(buffer, "Frames converted: %5d / %5d", framesConverted, framesCaptured);
 	display.print(buffer, CENTER, 160);
 	sprintf(buffer, "Folder name: %s", dirname);
 	display.print(buffer, CENTER, 200);
+
+	//Switch to processing mode
+	videoSave = videoSave_processing;
 
 	//Go through all the frames in the folder
 	for (framesConverted = 0; framesConverted < framesCaptured; framesConverted++) {
@@ -326,14 +329,8 @@ void proccessVideoFrames(uint16_t framesCaptured, char* dirname) {
 			return;
 		}
 
-		//Touch - turn display on or off
-		if (!digitalRead(pin_touch_irq)) {
-			digitalWrite(pin_lcd_backlight, !(checkScreenLight()));
-			while (!digitalRead(pin_touch_irq));
-		}
-
-		//Button press - stop capture
-		if (extButtonPressed())
+		//Button pressed, exit
+		if (videoSave != videoSave_processing)
 			break;
 
 		//Get filename
@@ -365,6 +362,7 @@ void proccessVideoFrames(uint16_t framesCaptured, char* dirname) {
 		sprintf(buffer, "Frames converted: %5d / %5d", framesConverted + 1, framesCaptured);
 		display.print(buffer, CENTER, 160);
 	}
+
 	//All images converted!
 	showFullMessage((char*) "Video conversion finished !");
 	delay(1000);

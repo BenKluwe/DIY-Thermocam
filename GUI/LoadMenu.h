@@ -53,8 +53,8 @@ void deleteVideo(char* dirname) {
 	//Draw the buttons
 	touchButtons.deleteAllButtons();
 	touchButtons.setTextFont(bigFont);
-	touchButtons.addButton(165, 160, 140, 55, (char*) "Yes");
-	touchButtons.addButton(15, 160, 140, 55, (char*) "No");
+	touchButtons.addButton(15, 160, 140, 55, (char*) "Yes");
+	touchButtons.addButton(165, 160, 140, 55, (char*) "No");
 	touchButtons.drawButtons();
 	touchButtons.setTextFont(smallFont);
 	//Touch handler
@@ -130,8 +130,8 @@ void deleteImage(char* filename) {
 	//Draw the buttons
 	touchButtons.deleteAllButtons();
 	touchButtons.setTextFont(bigFont);
-	touchButtons.addButton(165, 160, 140, 55, (char*) "Yes");
-	touchButtons.addButton(15, 160, 140, 55, (char*) "No");
+	touchButtons.addButton(15, 160, 140, 55, (char*) "Yes");
+	touchButtons.addButton(165, 160, 140, 55, (char*) "No");
 	touchButtons.drawButtons();
 	touchButtons.setTextFont(smallFont);;
 	//Touch handler
@@ -170,12 +170,12 @@ void deleteImage(char* filename) {
 /* Asks the user if he really wants to convert the image/video */
 bool convertPrompt() {
 	//Title & Background
-	drawTitle((char*) "Conversion Prompt");
+	drawTitle((char*) "Conversion Prompt", true);
 	display.setColor(VGA_BLACK);
 	display.setFont(smallFont);
 	display.setBackColor(200, 200, 200);
 	display.print((char*)"Do you want to convert ?", CENTER, 66);
-	display.print((char*)"That proccess will create", CENTER, 105);
+	display.print((char*)"That process will create", CENTER, 105);
 	display.print((char*)"bitmap(s) out of the raw data.", CENTER, 125);
 	//Draw the buttons
 	touchButtons.deleteAllButtons();
@@ -244,88 +244,162 @@ void convertImage(char* filename) {
 void convertVideo(char* dirname) {
 	uint16_t frames = getVideoFrameNumber(dirname);
 	char filename[] = "00000.BMP";
+
 	//Switch Clock to Alternative
 	startAltClockline(true);
+
 	//Go into the folder
 	sd.chdir(dirname);
+
 	//Get the frame name of the first frame
 	frameFilename(filename, 0);
 	bool exists = sd.exists(filename);
 	endAltClockline();
+
 	//If video is already converted, return
 	if (exists) {
 		showFullMessage((char*) "Video is already converted!");
 		delay(500);
 		return;
 	}
+
 	//If the user does not want to convert the video, return
 	if (!convertPrompt())
 		return;
+
 	//Show convert message
 	showFullMessage((char*) "Converting video to BMP..");
 	delay(1000);
-	//Convert image
-	videoSave = true;
+
+	//Convert video
 	proccessVideoFrames(frames, dirname);
-	videoSave = false;
+	videoSave = videoSave_disabled;
 }
 
-/* Touch handler for the load image/video menu */
-bool loadTouchHandler(bool isimg, char* filename, byte* choice, int imgCount, char* dirname = NULL) {
-	if (touch.touched() == true) {
-		TS_Point p = touch.getPoint();
-		uint16_t x = p.x;
-		uint16_t y = p.y;
-		//Find
-		if ((x >= 15) && (x <= 80) && (y >= 15) && (y <= 60)) {
-			*choice = 1;
-			return true;
-		}
-		//Delete
-		else if ((x >= 200) && (x <= 305) && (y >= 180) && (y <= 225)) {
-			//Image
-			if (isimg) {
-				deleteImage(filename);
-				*choice = 2;
-				return true;
-			}
-			//Video
-			else {
-				deleteVideo(dirname);
-				*choice = 2;
-				return true;
-			}
-		}
-		//Previous image
-		else if ((x >= 0) && (x <= 40) && (y >= 100) && (y <= 140) && (imgCount != 1)) {
-			*choice = 3;
-			return true;
-		}
-		//Next image
-		else if ((x >= 280) && (x <= 319) && (y >= 100) && (y <= 140) && (imgCount != 1)) {
-			*choice = 4;
-			return true;
-		}
-		//Exit
-		else if ((x >= 240) && (x <= 305) && (y >= 15) && (y <= 60)) {
-			*choice = 5;
-			return true;
-		}
-		//Convert
-		else if ((x >= 15) && (x <= 140) && (y >= 180) && (y <= 225)) {
-			//Image
-			if (isimg) {
-				convertImage(filename);
-				return true;
-			}
-			//Video
-			else {
-				convertVideo(dirname);
-				return true;
-			}
+/* Loads an image from the SDCard and prints it on screen */
+void openImage(char* filename, int imgCount) {
+	//Show message on screen
+	showFullMessage((char*) "Please wait, image is loading..");
+	//Display raw data
+	if (filename[15] == 'D') {
+		//Load Raw data
+		loadRawData(filename);
+		//Display Raw Data
+		displayRawData();
+	}
+
+	//Load bitmap
+	else if (filename[15] == 'B') {
+		loadBMPImage(filename);
+	}
+
+	//Unsupported file type
+	else {
+		showFullMessage((char*) "Unsupported file type!");
+		delay(1000);
+		return;
+	}
+
+	//Create string for time and date
+	char nameStr[20] = {
+		//Day
+		filename[6], filename[7], '.',
+		//Month
+		filename[4], filename[5], '.',
+		//Year
+		filename[0], filename[1], filename[2], filename[3], ' ',
+		//Hour
+		filename[8], filename[9], ':',
+		//Minute
+		filename[10], filename[11], ':',
+		//Second
+		filename[12], filename[13], '\0'
+	};
+
+	//Display GUI
+	displayGUI(imgCount, nameStr);
+	
+	//Attach interrupt
+	attachInterrupt(pin_touch_irq, loadTouchIRQ, FALLING);
+
+	//Wait for touch press
+	while (loadTouch == loadTouch_none);
+
+	//Disable touch handler
+	detachInterrupt(pin_touch_irq);
+}
+
+/* Get the number of frames in the video */
+uint16_t getVideoFrameNumber(char* dirname) {
+	uint16_t videoCounter = 0;
+	bool exists;
+	char filename[] = "00000.DAT";
+	//Switch Clock to Alternative
+	startAltClockline(true);
+	//Go into the folder
+	sd.chdir(dirname);
+	//Look how many frames we have
+	while (true) {
+		//Get the frame name
+		frameFilename(filename, videoCounter);
+		//Check frame existance
+		exists = sd.exists(filename);
+		//Raise counter
+		if (exists)
+			videoCounter++;
+		//Leave
+		else
+			break;
+	}
+	//Switch Clock back to Standard
+	endAltClockline();
+	return videoCounter;
+}
+
+/* Play a video from the internal storage */
+void playVideo(char* dirname, int imgCount) {
+	//Help variables
+	uint16_t numberOfFrames = getVideoFrameNumber(dirname);
+	char filename[] = "00000.DAT";
+	char buffer[14];
+
+	//Play forever
+	while (true) {
+		//Go through the frames
+		for (int i = 0; i < numberOfFrames; i++) {
+			//Check for touch press
+			if (touch.touched())
+				loadTouchIRQ();
+			if (loadTouch != loadTouch_none)
+				return;
+
+			//Get the frame name
+			frameFilename(filename, i);
+
+			//Load Raw data
+			loadRawData(filename, dirname);
+
+			//Check for touch press
+			if (touch.touched())
+				loadTouchIRQ();
+			if (loadTouch != loadTouch_none)
+				return;
+
+			//Display Raw Data
+			displayRawData();
+
+			//Check for touch press
+			if (touch.touched())
+				loadTouchIRQ();
+			if (loadTouch != loadTouch_none)
+				return;
+
+			//Create string
+			sprintf(buffer, "%5d / %-5d", i + 1, numberOfFrames);
+			//Display GUI
+			displayGUI(imgCount, buffer);
 		}
 	}
-	return false;
 }
 
 /* Shows a menu where the user can choose the time & date items for the image */

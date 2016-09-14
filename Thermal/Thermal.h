@@ -66,7 +66,17 @@ void buttonIRQ() {
 			imgSave = imgSave_set;
 		//Enable video mode
 		else
-			videoSave = true;
+			videoSave = videoSave_menu;
+	}
+	//When in video save recording mode, go to processing
+	if (videoSave == videoSave_recording) {
+		videoSave = videoSave_processing;
+		while (extButtonPressed());
+	}
+	//When in video save processing, end it
+	else if (videoSave == videoSave_processing) {
+		videoSave = videoSave_menu;
+		while (extButtonPressed());
 	}
 }
 
@@ -430,7 +440,7 @@ void displayInfos() {
 		if (storageEnabled)
 			displayFreeSpace();
 		//Display warmup if required
-		if ((videoSave == false) && (calStatus == cal_warmup))
+		if ((!videoSave) && (calStatus == cal_warmup))
 			displayWarmup();
 		//Show the minimum / maximum points
 		if (minMaxPoints & minMaxPoints_min)
@@ -526,7 +536,7 @@ void liveMode() {
 			saveImage();
 
 		//Go into video mode
-		if (videoSave)
+		if (videoSave == videoSave_menu)
 			videoMode();
 
 		//Long touch handler

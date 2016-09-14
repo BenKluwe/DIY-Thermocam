@@ -241,11 +241,29 @@ void videoCaptureInterval(int16_t* remainingTime, uint16_t* framesCaptured, char
 	}
 }
 
+/* Normal video capture */
+void videoCaptureNormal(char* dirname, uint16_t* framesCaptured) {
+	char buffer[30];
+
+	//Save video raw frame
+	saveRawData(false, dirname, *framesCaptured);
+	//Raise capture counter
+	*framesCaptured = *framesCaptured + 1;
+	//Refresh capture
+	refreshCapture();
+	//Display title
+	display.setFont(bigFont);
+	display.print((char*) "Video capture", CENTER, 20);
+	//Display current frames captured
+	display.setFont(smallFont);
+	sprintf(buffer, "Frames captured: %5d", *framesCaptured);
+	display.print(buffer, CENTER, 210);
+}
+
 /* This screen is shown during the video capture */
 void videoCapture() {
 	//Help variables
 	char dirname[20];
-	char buffer[30];
 	int16_t delayTime = videoInterval;
 	uint16_t framesCaptured = 0;
 
@@ -255,40 +273,21 @@ void videoCapture() {
 	//Create folder 
 	createVideoFolder(dirname);
 
-	//For normal video, display screen content
-	if (videoInterval == 0) {
-		display.fillScr(200, 200, 200);
-		display.setBackColor(200, 200, 200);
-		display.setFont(bigFont);
-		display.setColor(VGA_BLUE);
-		display.print((char*)"Recording video", CENTER, 30);
-		display.setFont(smallFont);
-		display.setColor(VGA_BLACK);
-		display.print((char*)"Press push button to stop capture", CENTER, 80);
-		display.print((char*)"Touch to toggle screen backlight", CENTER, 120);
-		sprintf(buffer, "Frames captured: %5d", framesCaptured);
-		display.print(buffer, CENTER, 160);
-		sprintf(buffer, "Folder name: %s", dirname);
-		display.print(buffer, CENTER, 200);
-	}
-	else {
-		//Set text colors
-		setTextColor();
-		display.setBackColor(VGA_TRANSPARENT);
-	}
+	//Set text colors
+	setTextColor();
+	display.setBackColor(VGA_TRANSPARENT);
+
+	//Switch to recording mode
+	videoSave = videoSave_recording;
 
 	//Main loop
-	while (videoSave) {
+	while (videoSave == videoSave_recording) {
 
 		//Touch - turn display on or off
 		if (!digitalRead(pin_touch_irq)) {
 			digitalWrite(pin_lcd_backlight, !(checkScreenLight()));
 			while (!digitalRead(pin_touch_irq));
 		}
-
-		//Button press - stop capture
-		if (extButtonPressed())
-			break;
 
 		//Receive the temperatures over SPI
 		getTemperatures();
@@ -303,17 +302,11 @@ void videoCapture() {
 		if ((autoMode) && (!limitsLocked))
 			limitValues();
 
-		//Normal  mode
+		//Video capture
 		if (videoInterval == 0) {
-			//Save video raw frame
-			saveRawData(false, dirname, framesCaptured);
-			//Raise capture counter
-			framesCaptured = framesCaptured + 1;
-			//Display current frames captured
-			sprintf(buffer, "Frames captures: %5d", framesCaptured);
-			display.print(buffer, CENTER, 160);
+			videoCaptureNormal(dirname, &framesCaptured);
 		}
-		//Time interval save
+		//Interval capture
 		else {
 			videoCaptureInterval(&delayTime, &framesCaptured, dirname);
 		}
@@ -329,17 +322,9 @@ void videoCapture() {
 	if (!checkScreenLight())
 		enableScreenLight();
 
-	//Post processing for interval videos if enabled
-	if (framesCaptured > 0) {
-		videoSave = true;
-		//Ask the user if he wants to convert that video
-		if (convertPrompt()) {
-			showFullMessage((char*) "Capture finished ! Converting..");
-			delay(1000);
-			//Process video frames
-			proccessVideoFrames(framesCaptured, dirname);
-		}
-	}
+	//Post processing for interval videos if enabled and wished
+	if ((framesCaptured > 0) && (convertPrompt()))
+		proccessVideoFrames(framesCaptured, dirname);
 
 	//Show finished message
 	else {
@@ -348,31 +333,40 @@ void videoCapture() {
 	}
 
 	//Disable mode
-	videoSave = false;
+	videoSave = videoSave_disabled;
+	imgSave = imgSave_disabled;
 }
 
 /* Video mode, choose intervall or normal */
 bool videoMode() {
+
 	//Show message that video is only possible in thermal mode
 	if (displayMode != displayMode_thermal) {
 		showFullMessage((char*) "Video only possible in thermal mode!");
+		delay(1000);
 		//Disable mode
-		videoSave = false;
+		videoSave = videoSave_disabled;
+		imgSave = imgSave_disabled;
 		return false;
 	}
+
 	//For old HW, check if the SD card is there
 	if (mlx90614Version == mlx90614Version_old) {
 		if (!checkSDCard()) {
 			//Disable mode
-			videoSave = false;
+			videoSave = videoSave_disabled;
+			imgSave = imgSave_disabled;
 			return false;
 		}
 	}
+
 	//Check if there is at least 1MB of space left
 	if (getSDSpace() < 1000) {
 		showFullMessage((char*) "Int. space full!");
+		delay(1000);
 		//Disable mode
-		videoSave = false;
+		videoSave = videoSave_disabled;
+		imgSave = imgSave_disabled;
 		return false;
 	}
 
@@ -417,7 +411,7 @@ redraw:
 			//Back
 			else if (pressedButton == 2) {
 				//Disable mode
-				videoSave = false;
+				videoSave = videoSave_disabled;
 				return false;
 			}
 		}

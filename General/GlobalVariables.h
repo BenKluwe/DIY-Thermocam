@@ -130,10 +130,12 @@ byte adjCombDown;
 //Save Image in the next cycle
 volatile byte imgSave;
 //Save Video in the next cycle
-volatile bool videoSave;
+volatile byte videoSave;
 //Show Live Mode Menu in the next cycle
 volatile bool showMenu;
 //Handler for a long touch press
 volatile bool longTouch;
 //Check if in serial mode
 volatile bool serialMode;
+//Load touch decision marker
+volatile byte loadTouch;

@@ -428,15 +428,15 @@ void buttonHandler() {
 	//Long press - request to start or stop a video
 	else {
 		//Start video
-		if ((videoSave == false) && (sendCmd != FRAME_STOPVID)) {
+		if ((videoSave == videoSave_disabled) && (sendCmd != FRAME_STOPVID)) {
 			sendCmd = FRAME_STARTVID;
-			videoSave = true;
+			videoSave = videoSave_recording;
 			while (extButtonPressed());
 		}
 		//Stop video
-		if ((videoSave == true) && (sendCmd != FRAME_STARTVID)) {
+		if ((videoSave == videoSave_recording) && (sendCmd != FRAME_STARTVID)) {
 			sendCmd = FRAME_STOPVID;
-			videoSave = false;
+			videoSave = videoSave_disabled;
 			while (extButtonPressed());
 		}
 	}
@@ -529,5 +529,5 @@ void serialConnect() {
 	}
 
 	//Disable video mode
-	videoSave = false;
+	videoSave = videoSave_disabled;
 }

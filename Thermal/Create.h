@@ -401,11 +401,11 @@ void createVisCombImg() {
 		convertColors();
 	}
 
-	//Get the visual image and decompress it combined
-	getVisualImage();
-
 	//Fill the edges
 	fillEdges();
+
+	//Get the visual image and decompress it combined
+	getVisualImage();
 }
 
 /* Creates a thermal image and stores it in the array */

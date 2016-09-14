@@ -88,7 +88,7 @@ unsigned int output_func(JDEC * jd, void * bitmap, JRECT * rect) {
 			for (x = rect->left; x <= rect->right; x++) {
 
 				//Check if we draw inside the screen on x position
-				if ((x + (5 * adjCombRight) <= 159) && (x - (5 * adjCombLeft) >= 0)) {
+				if (((x + (5 * adjCombRight) <= 159) && (x - (5 * adjCombLeft) >= 0))) {
 
 					//Get the image position
 					if (mlx90614Version == mlx90614Version_old)
@@ -135,6 +135,9 @@ unsigned int output_func(JDEC * jd, void * bitmap, JRECT * rect) {
 					//Write to image buffer
 					image[imagepos] = pixel;
 				}
+				//Raise counter if it is not inside the image
+				else
+					count++;
 			}
 		}
 	}
