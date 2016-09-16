@@ -37,7 +37,7 @@ void displayGUI(int imgCount, char* infoText) {
 	display.print((char*) "Exit", 250, 210);
 	display.setFont(smallFont);
 	//Display either frame number or image date and time
-	display.print(infoText, CENTER, 12);
+	display.print(infoText, 80, 12);
 }
 
 /* Asks the user if he wants to delete the video */
@@ -130,8 +130,8 @@ void deleteImage(char* filename) {
 	//Draw the buttons
 	touchButtons.deleteAllButtons();
 	touchButtons.setTextFont(bigFont);
-	touchButtons.addButton(15, 160, 140, 55, (char*) "Yes");
-	touchButtons.addButton(165, 160, 140, 55, (char*) "No");
+	touchButtons.addButton(165, 160, 140, 55, (char*) "Yes");
+	touchButtons.addButton(15, 160, 140, 55, (char*) "No");
 	touchButtons.drawButtons();
 	touchButtons.setTextFont(smallFont);;
 	//Touch handler
@@ -314,7 +314,7 @@ void openImage(char* filename, int imgCount) {
 		//Month
 		filename[4], filename[5], '.',
 		//Year
-		filename[0], filename[1], filename[2], filename[3], ' ',
+		filename[2], filename[3], ' ',
 		//Hour
 		filename[8], filename[9], ':',
 		//Minute

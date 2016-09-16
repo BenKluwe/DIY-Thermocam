@@ -792,31 +792,31 @@ void hotColdChooser() {
 	touchButtons.addButton(15, 48, 55, 120, (char*) "-");
 	touchButtons.addButton(250, 48, 55, 120, (char*) "+");
 	touchButtons.drawButtons();
-	
-	//Find min and max values
-	if ((autoMode) && (!limitsLocked)) {
-		getTemperatures();
-		limitValues();
-	}
 
 	//Draw the border for the preview image
 	display.setColor(VGA_BLACK);
 	display.drawRect(79, 47, 241, 169);
-
-	//Prepare the preview image
-	delay(10);
-	createThermalImg();
 
 	//Set text color
 	display.setFont(smallFont);
 	display.setBackColor(VGA_TRANSPARENT);
 	setTextColor();
 
+	//Find min and max values
+	if ((autoMode) && (!limitsLocked)) {
+		getTemperatures();
+		limitValues();
+	}
+
 	//Calculate initial level
 	if (hotColdMode == hotColdMode_cold)
 		hotColdLevel = (int16_t)round(calFunction(0.2 * (maxTemp - minTemp) + minTemp));
 	if (hotColdMode == hotColdMode_hot)
 		hotColdLevel = (int16_t)round(calFunction(0.8 * (maxTemp - minTemp) + minTemp));
+
+	//Prepare the preview image
+	delay(10);
+	createThermalImg();
 
 	//Display the preview image
 	display.drawBitmap(80, 48, 160, 120, image, 1);
