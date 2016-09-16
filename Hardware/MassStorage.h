@@ -88,6 +88,43 @@ void restartAndJumpToApp(void) {
 		;
 }
 
+/* Asks the user if he really wants to enter mass storage mode */
+bool massStoragePrompt() {
+	//Title & Background
+	drawTitle((char*) "USB File Transfer");
+	display.setColor(VGA_BLACK);
+	display.setFont(smallFont);
+	display.setBackColor(200, 200, 200);
+	display.print((char*)"Do you want to enter mass storage", CENTER, 65);
+	display.print((char*)"to transfer files/videos to the PC?", CENTER, 85);
+	display.print((char*)"Do not use this for firmware updates", CENTER, 105);
+	display.print((char*)"or for the USB serial connection.", CENTER, 125);
+	//Draw the buttons
+	touchButtons.deleteAllButtons();
+	touchButtons.setTextFont(bigFont);
+	touchButtons.addButton(165, 160, 140, 55, (char*) "Yes");
+	touchButtons.addButton(15, 160, 140, 55, (char*) "No");
+	touchButtons.drawButtons();
+	touchButtons.setTextFont(smallFont);
+	//Wait for touch release
+	while (touch.touched());
+	//Touch handler
+	while (true) {
+		//If touch pressed
+		if (touch.touched() == true) {
+			int pressedButton = touchButtons.checkButtons(true);
+			//YES
+			if (pressedButton == 0) {
+				return true;
+			}
+			//NO
+			else if (pressedButton == 1) {
+				return false;
+			}
+		}
+	}
+}
+
 /* Go into mass storage mode */
 void massStorage() {
 	//Old hardware
@@ -96,14 +133,15 @@ void massStorage() {
 		showFullMessage((char*) "Your HW does not support this!");
 		delay(1000);
 		//Go back
-		mainMenu();
+		return;
 	}
-	//Other
-	else {
-		showFullMessage((char*) "Disconnect USB cable to return !");
-		delay(1500);
-		//Set marker
-		EEPROM.write(eeprom_massStorage, eeprom_setValue);
-		restartAndJumpToApp();
-	}
+	//Check if the user really wants to do it
+	if (!massStoragePrompt())
+		return;
+	//Show message
+	showFullMessage((char*) "Disconnect USB cable to return!");
+	delay(1500);
+	//Set marker
+	EEPROM.write(eeprom_massStorage, eeprom_setValue);
+	restartAndJumpToApp();
 }

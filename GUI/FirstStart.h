@@ -25,8 +25,8 @@ void welcomeScreen() {
 	display.printC("DIY-Thermocam", CENTER, 60, VGA_BLUE);
 	display.setFont(smallFont);
 	display.printC("This is the first time setup.", CENTER, 110);
-	display.printC("It will guide you through", CENTER, 140);
-	display.printC("the basic settings.", CENTER, 170);
+	display.printC("It will guide you through the", CENTER, 140);
+	display.printC("basic settings for your device.", CENTER, 170);
 	display.printC("-> Please touch screen <-", CENTER, 210, VGA_BLUE);
 	//Wait for touch press
 	while (!touch.touched());

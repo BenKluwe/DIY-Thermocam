@@ -911,9 +911,9 @@ void loadTouchIRQ() {
 	if ((x >= 15) && (x <= 80) && (y >= 15) && (y <= 60))
 		loadTouch = loadTouch_find;
 
-	//Delete
+	//Exit
 	else if ((x >= 200) && (x <= 305) && (y >= 180) && (y <= 225))
-		loadTouch = loadTouch_delete;
+		loadTouch = loadTouch_exit;
 
 	//Previous
 	else if ((x >= 0) && (x <= 40) && (y >= 100) && (y <= 140) && (imgCount != 1))
@@ -923,9 +923,10 @@ void loadTouchIRQ() {
 	else if ((x >= 280) && (x <= 319) && (y >= 100) && (y <= 140) && (imgCount != 1))
 		loadTouch = loadTouch_next;
 
-	//Exit
+	//Delete
 	else if ((x >= 240) && (x <= 305) && (y >= 15) && (y <= 60))
-		loadTouch = loadTouch_exit;
+		loadTouch = loadTouch_delete;
+		
 
 	//Convert
 	else if ((x >= 15) && (x < 140) && (y >= 180) && (y <= 225))

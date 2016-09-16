@@ -148,17 +148,17 @@ void showColorBar() {
 
 	//Calculate color level for hot and cold
 	float colorLevel = 0;
-	if (hotColdMode != hotColdMode_disabled)
+	if ((hotColdMode != hotColdMode_disabled) && (displayMode != displayMode_combined))
 		colorLevel = (tempToRaw(hotColdLevel) * 1.0 - minTemp) / (maxTemp * 1.0 - minTemp);
 
 	//Display color bar
 	for (int i = 0; i < (colorElements - 1); i++) {
 		if ((i % 4) == 0) {
 			//Hot
-			if ((hotColdMode == hotColdMode_hot) && (i >= (colorLevel * colorElements)) && (calStatus != cal_warmup))
+			if ((hotColdMode == hotColdMode_hot) && (i >= (colorLevel * colorElements)) && (calStatus != cal_warmup) && (displayMode != displayMode_combined))
 				getHotColdColors(&red, &green, &blue);
 			//Cold
-			else if ((hotColdMode == hotColdMode_cold) && (i <= (colorLevel * colorElements)) && (calStatus != cal_warmup))
+			else if ((hotColdMode == hotColdMode_cold) && (i <= (colorLevel * colorElements)) && (calStatus != cal_warmup) && (displayMode != displayMode_combined))
 				getHotColdColors(&red, &green, &blue);
 			//Other
 			else {

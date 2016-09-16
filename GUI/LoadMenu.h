@@ -22,8 +22,8 @@ void displayGUI(int imgCount, char* infoText) {
 	//set Background transparent
 	display.setBackColor(VGA_TRANSPARENT);
 	display.setFont(bigFont);
-	//Exit to main menu
-	display.print((char*) "Exit", 250, 10);
+	//Delete image or video from internal storage 
+	display.print((char*) "Delete", 220, 10);
 	//Find image by time and date
 	display.print((char*) "Find", 5, 10);
 	//Display prev/next if there is more than one image
@@ -33,8 +33,8 @@ void displayGUI(int imgCount, char* infoText) {
 	}
 	//Convert image to bitmap
 	display.print((char*) "Convert", 5, 210);
-	//Delete image from internal 
-	display.print((char*) "Delete", 220, 210);
+	//Exit to main menu
+	display.print((char*) "Exit", 250, 210);
 	display.setFont(smallFont);
 	//Display either frame number or image date and time
 	display.print(infoText, CENTER, 12);
@@ -205,6 +205,13 @@ bool convertPrompt() {
 
 /* Convert a raw image lately to BMP */
 void convertImage(char* filename) {
+
+	//Check if image is a bitmap
+	if (filename[15] == 'B') {
+		showFullMessage((char*) "Image is already converted!");
+		delay(500);
+		return;
+	}
 
 	//Check if the image is already there
 	strcpy(&filename[14], ".BMP");

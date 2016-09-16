@@ -370,6 +370,11 @@ bool videoMode() {
 		return false;
 	}
 
+	//Border
+	display.setColor(VGA_BLACK);
+	display.fillRoundRect(5, 5, 315, 235);
+	display.fillRoundRect(4, 4, 316, 236);
+
 redraw:
 	//Title & Background
 	mainMenuBackground();
@@ -384,6 +389,7 @@ redraw:
 
 	//Touch handler
 	while (true) {
+		
 		//If touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);

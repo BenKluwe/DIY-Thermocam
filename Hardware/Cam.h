@@ -184,7 +184,7 @@ void saveVisualImage() {
 /* Receive the image data and display it on the screen */
 void getVisualImage() {
 	uint8_t *buffer;
-
+	
 	//Get frame length
 	uint16_t jpglen = cam.frameLength();
 	//Define array for the jpeg data
@@ -205,6 +205,7 @@ void getVisualImage() {
 	}
 	//End transmission
 	cam.end();
+
 	//Decompress the image
 	iodev.jpic = jpegData;
 	iodev.jsize = jpglen;

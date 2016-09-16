@@ -273,9 +273,6 @@ bool tempLimitsPresetSaveMenu() {
 /* Touch Handler for the limit chooser menu */
 bool tempLimitsManualHandler() {
 
-	//Save the old limits in case the user wants to restore them
-	uint16_t maxTemp_old = maxTemp;
-	uint16_t minTemp_old = minTemp;
 	//Set both modes to false for the first time
 	bool minChange = false;
 	bool maxChange = false;
@@ -284,9 +281,15 @@ bool tempLimitsManualHandler() {
 	char minC[10];
 	char maxC[10];
 
+
 	//Touch handler
 	while (true) {
+		//Set font & text color
 		display.setFont(smallFont);
+		display.setBackColor(VGA_TRANSPARENT);
+		setTextColor();
+
+		//Update minimum & maximum
 		min = (int)round(calFunction(minTemp));
 		max = (int)round(calFunction(maxTemp));
 		if (tempFormat == tempFormat_celcius) {
@@ -297,9 +300,10 @@ bool tempLimitsManualHandler() {
 			sprintf(minC, "Min:%dF", min);
 			sprintf(maxC, "Max:%dF", max);
 		}
-		display.print(maxC, 180, 145);
-		display.print(minC, 85, 145);
+		display.print(maxC, 180, 153);
+		display.print(minC, 85, 153);
 		display.setFont(bigFont);
+
 		//If touch pressed
 		if (touch.touched() == true) {
 			int pressedButton;
@@ -311,17 +315,9 @@ bool tempLimitsManualHandler() {
 				pressedButton = touchButtons.checkButtons();
 			//RESET
 			if (pressedButton == 0) {
-				//Restore the old values
-				if (minChange) {
-					minTemp = minTemp_old;
-				}
-				else if (maxChange) {
-					maxTemp = maxTemp_old;
-				}
-				else {
-					minTemp = minTemp_old;
-					maxTemp = maxTemp_old;
-				}
+				//Refresh min and max
+				getTemperatures();
+				limitValues();
 			}
 			//SELECT
 			else if (pressedButton == 1) {
@@ -396,11 +392,13 @@ bool tempLimitsManualHandler() {
 					}
 				}
 			}
+
 			//Prepare the preview image
 			delay(10);
 			createThermalImg();
+
 			//Display the preview image
-			display.drawBitmap(80, 40, 160, 120, image, 1);
+			display.drawBitmap(80, 48, 160, 120, image, 1);
 		}
 	}
 }
@@ -421,12 +419,14 @@ redraw:
 	touchButtons.drawButtons();
 	//Prepare the preview image
 	delay(10);
+	autoMode = true;
 	createThermalImg();
+	autoMode = false;
 	//Display the preview image
-	display.drawBitmap(80, 40, 160, 120, image, 1);
+	display.drawBitmap(80, 48, 160, 120, image, 1);
 	//Draw the border for the preview image
 	display.setColor(VGA_BLACK);
-	display.drawRect(79, 39, 241, 161);
+	display.drawRect(79, 47, 241, 169);
 	//Go into the normal touch handler
 	if (!tempLimitsManualHandler())
 		goto redraw;
@@ -711,26 +711,27 @@ void hotColdChooserHandler() {
 	char margin[14];
 
 	//Display level as temperature
-	display.setFont(smallFont);
 	if (!tempFormat) {
 		sprintf(margin, "Limit: %dC", hotColdLevel);
 	}
 	else {
 		sprintf(margin, "Limit: %dF", hotColdLevel);
 	}
-	display.print(margin, CENTER, 145);
+	display.print(margin, CENTER, 153);
 
 	//Touch handler
 	while (true) {
+		waitTouch:
+
 		//If touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
 			//RESET
 			if (pressedButton == 0) {
 				if (hotColdMode == hotColdMode_cold)
-					hotColdLevel = (int16_t)round(calFunction(0.1 * (maxTemp - minTemp) + minTemp));
+					hotColdLevel = (int16_t)round(calFunction(0.2 * (maxTemp - minTemp) + minTemp));
 				if (hotColdMode == hotColdMode_hot)
-					hotColdLevel = (int16_t)round(calFunction(0.9 * (maxTemp - minTemp) + minTemp));
+					hotColdLevel = (int16_t)round(calFunction(0.8 * (maxTemp - minTemp) + minTemp));
 			}
 			//SELECT
 			else if (pressedButton == 1) {
@@ -743,17 +744,22 @@ void hotColdChooserHandler() {
 			else if (pressedButton == 2) {
 				if (hotColdLevel > round(calFunction(minTemp)))
 					hotColdLevel--;
+				else
+					goto waitTouch;
 			}
 			//PLUS
 			else if (pressedButton == 3) {
 				if (hotColdLevel < round(calFunction(maxTemp)))
 					hotColdLevel++;
+				else
+					goto waitTouch;
 			}
 			//Prepare the preview image
 			delay(10);
 			createThermalImg();
 			//Display the preview image
-			display.drawBitmap(80, 40, 160, 120, image, 1);
+			display.drawBitmap(80, 48, 160, 120, image, 1);
+
 			//Display level as temperature
 			if (!tempFormat) {
 				sprintf(margin, "Limit: %dC", hotColdLevel);
@@ -761,7 +767,7 @@ void hotColdChooserHandler() {
 			else {
 				sprintf(margin, "Limit: %dF", hotColdLevel);
 			}
-			display.print(margin, CENTER, 145);
+			display.print(margin, CENTER, 153);
 		}
 	}
 }
@@ -786,19 +792,35 @@ void hotColdChooser() {
 	touchButtons.addButton(15, 48, 55, 120, (char*) "-");
 	touchButtons.addButton(250, 48, 55, 120, (char*) "+");
 	touchButtons.drawButtons();
-	//Calculate initial level
-	if (hotColdMode == hotColdMode_cold)
-		hotColdLevel = (int16_t)round(calFunction(0.1 * (maxTemp - minTemp) + minTemp));
-	if (hotColdMode == hotColdMode_hot)
-		hotColdLevel = (int16_t)round(calFunction(0.9 * (maxTemp - minTemp) + minTemp));
+	
+	//Find min and max values
+	if ((autoMode) && (!limitsLocked)) {
+		getTemperatures();
+		limitValues();
+	}
+
+	//Draw the border for the preview image
+	display.setColor(VGA_BLACK);
+	display.drawRect(79, 47, 241, 169);
+
 	//Prepare the preview image
 	delay(10);
 	createThermalImg();
+
+	//Set text color
+	display.setFont(smallFont);
+	display.setBackColor(VGA_TRANSPARENT);
+	setTextColor();
+
+	//Calculate initial level
+	if (hotColdMode == hotColdMode_cold)
+		hotColdLevel = (int16_t)round(calFunction(0.2 * (maxTemp - minTemp) + minTemp));
+	if (hotColdMode == hotColdMode_hot)
+		hotColdLevel = (int16_t)round(calFunction(0.8 * (maxTemp - minTemp) + minTemp));
+
 	//Display the preview image
-	display.drawBitmap(80, 40, 160, 120, image, 1);
-	//Draw the border for the preview image
-	display.setColor(VGA_BLACK);
-	display.drawRect(79, 39, 241, 161);
+	display.drawBitmap(80, 48, 160, 120, image, 1);
+
 	//Go into the normal touch handler
 	hotColdChooserHandler();
 }
@@ -1289,6 +1311,7 @@ void mainMenuHandler(byte* pos) {
 		//Check for screen sleep
 		if (screenOffCheck())
 			drawMainMenu(*pos);
+		
 		//Touch screen pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);

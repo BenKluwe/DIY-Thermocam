@@ -117,7 +117,7 @@ void initRTC() {
 	//Get the time from the Teensy
 	setSyncProvider(getTeensy3Time);
 	//Check if year is lower than 2016
-	if (year() < 2016) {
+	if ((year() < 2016) && (EEPROM.read(eeprom_firstStart) == eeprom_setValue)) {
 		showFullMessage((char*) "Empty coin cell battery, recharge!");
 		delay(1500);
 		setTime(0, 0, 0, 1, 1, 2016);
@@ -309,12 +309,17 @@ void initDisplay() {
 	setDisplayRotation();
 	//Link display library to image array
 	display.imagePtr = image;
+
 	//If returning from mass storage, do not check
 	if (EEPROM.read(eeprom_massStorage) == eeprom_setValue) {
 		//Reset marker
 		EEPROM.write(eeprom_massStorage, 0);
 		return;
 	}
+	//If done a firmware update, do not check
+	if(EEPROM.read(eeprom_fwVersion) != fwVersion)
+		return;
+
 	//Check status by writing test pixel red to 10/10
 	display.setXY(10, 10, 10, 10);
 	display.setPixel(VGA_RED);
@@ -362,10 +367,8 @@ void checkDiagnostic() {
 		printDiagnostic();
 		//Show it on the screen
 		showDiagnostic();
-		//Wait for touch press
-		while (!touch.touched());
-		//Wait for touch release
-		while (touch.touched());
+		//Wait
+		delay(2000);
 	}
 }
 

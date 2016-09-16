@@ -52,6 +52,7 @@ int16_t colorElements;
 
 //160x120 image storage
 unsigned short image[19200];
+DMASetting dmasettings[3];
 //Array to store the printed temperatures
 uint16_t showTemp[192];
 //Save filename 

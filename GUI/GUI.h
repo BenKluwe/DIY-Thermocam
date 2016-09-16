@@ -70,7 +70,7 @@ void showFullMessage(char* message, bool small) {
 }
 
 /* Draw a title on the screen */
-void drawTitle(char* name, bool firstStart = false) {
+void drawTitle(char* name, bool firstStart) {
 	if (firstStart)
 		display.fillScr(200, 200, 200);
 	else {

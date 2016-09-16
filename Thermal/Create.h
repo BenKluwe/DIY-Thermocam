@@ -275,7 +275,7 @@ void convertColors() {
 
 	//For hot and cold mode, calculate rawlevel
 	float hotColdRawLevel = 0.0;
-	if (hotColdMode != hotColdMode_disabled)
+	if ((hotColdMode != hotColdMode_disabled) && (displayMode != displayMode_combined))
 		hotColdRawLevel = tempToRaw(hotColdLevel);
 
 	for (int i = 0; i < 19200; i++) {
@@ -288,10 +288,10 @@ void convertColors() {
 			image[i] = minTemp;
 
 		//Hot
-		if ((hotColdMode == hotColdMode_hot) && (value >= hotColdRawLevel) && (calStatus != cal_warmup))
+		if ((hotColdMode == hotColdMode_hot) && (value >= hotColdRawLevel) && (calStatus != cal_warmup) && (displayMode != displayMode_combined))
 			getHotColdColors(&red, &green, &blue);
 		//Cold
-		else if ((hotColdMode == hotColdMode_cold) && (value <= hotColdRawLevel) && (calStatus != cal_warmup))
+		else if ((hotColdMode == hotColdMode_cold) && (value <= hotColdRawLevel) && (calStatus != cal_warmup) && (displayMode != displayMode_combined))
 			getHotColdColors(&red, &green, &blue);
 		//Apply colorscheme
 		else {

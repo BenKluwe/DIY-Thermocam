@@ -86,6 +86,8 @@ void touchIRQ();
 void displayRawData();
 void loadBMPImage(char* filename);
 void loadTouchIRQ();
+void drawTitle(char* name, bool firstStart = false);
 void checkImageSave();
+void saveScreenshot();
 void createSDName(char* filename, bool folder = false);
 void toggleLaser(bool message = false);
