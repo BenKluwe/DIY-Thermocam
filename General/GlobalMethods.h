@@ -45,7 +45,7 @@ float celciusToFahrenheit(float Tc);
 uint16_t tempToRaw(float temp);
 void frameFilename(char* filename, uint16_t count);
 void liveMode();
-void load();
+void loadFiles();
 void loadRawData(char* filename, char* dirname = NULL);
 void settingsMenuHandler();
 void saveDisplayImage(char* filename, char* dirname = NULL);

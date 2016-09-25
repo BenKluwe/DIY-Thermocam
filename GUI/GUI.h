@@ -219,13 +219,18 @@ void displayWarmup() {
 void displayBatteryStatus() {
 	//Check battery status
 	checkBattery();
-	//Display it
-	if (batPercentage != -1) {
+	//USB Power only
+	if (batPercentage == -1)
+		display.print((char*) "USB Power", 240, 0);
+	//Low Battery
+	else if(batPercentage == 0)
+		display.print((char*) "LOW", 270, 0);
+	//Display battery status in percentage
+	else {
 		display.printNumI(batPercentage, 280, 0, 3, ' ');
 		display.print((char*) "%", 310, 0);
 	}
-	else
-		display.print((char*) "USB Power", 240, 0);
+		
 }
 
 /* Display the date on screen */

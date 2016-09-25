@@ -260,12 +260,14 @@ bool calibration() {
 	//Still in warmup
 	if (calStatus == cal_warmup) {
 		showFullMessage((char*) "Please wait for sensor warmup!", true);
-		delay(1500);
-		return true;
+		delay(1000);
+		return false;
 	}
+
 	//If there is a calibration
 	else if (calStatus == cal_manual)
 		return calibrationChooser();
+
 	//If there is none, do a new one
 	else
 		calibrationProcess();

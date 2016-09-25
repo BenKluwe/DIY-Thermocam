@@ -96,8 +96,8 @@ bool massStoragePrompt() {
 	display.setFont(smallFont);
 	display.setBackColor(200, 200, 200);
 	display.print((char*)"Do you want to enter mass storage", CENTER, 65);
-	display.print((char*)"to transfer files/videos to the PC?", CENTER, 85);
-	display.print((char*)"Do not use this for firmware updates", CENTER, 105);
+	display.print((char*)"to transfer files to the PC?", CENTER, 85);
+	display.print((char*)"Do not use this for FW updates", CENTER, 105);
 	display.print((char*)"or for the USB serial connection.", CENTER, 125);
 	//Draw the buttons
 	touchButtons.deleteAllButtons();

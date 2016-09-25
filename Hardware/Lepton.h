@@ -21,9 +21,9 @@ byte leptonFrame[164];
 
 /* Start Lepton SPI Transmission */
 void leptonBeginSPI() {
-	//Lepton3 - 40 Mhz minimum and SPI mode 0
+	//Lepton3 - 30 Mhz minimum and SPI mode 0
 	if (leptonVersion == leptonVersion_3_Shutter)
-		SPI.beginTransaction(SPISettings(40000000, MSBFIRST, SPI_MODE0));
+		SPI.beginTransaction(SPISettings(30000000, MSBFIRST, SPI_MODE0));
 	//Lepton2 - 20 Mhz maximum and SPI mode 1
 	else
 		SPI.beginTransaction(SPISettings(20000000, MSBFIRST, SPI_MODE1));
@@ -244,7 +244,7 @@ void leptonRadSet(bool enable)
 /* Check which hardware revision of the FLIR Lepton is connected */
 void initLepton() {
 	//Short delay
-	delay(1000);
+	delay(1500);
 
 	//Check the Lepton HW Revision
 	leptonCheckVersion();

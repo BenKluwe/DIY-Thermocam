@@ -522,15 +522,15 @@ bool tempLimits() {
 	//Do not show in visual mode
 	if (displayMode == displayMode_visual) {
 		showFullMessage((char*) "No use in visual mode", true);
-		delay(1500);
+		delay(1000);
 		return false;
 	}
 
 	//Still in warmup, do not let the user do this
 	if (calStatus == cal_warmup) {
 		showFullMessage((char*) "Please wait for sensor warmup!", true);
-		delay(1500);
-		return true;
+		delay(1000);
+		return false;
 	}
 
 	//Title & Background
@@ -575,8 +575,8 @@ bool tempPointsMenu() {
 	//Still in warmup, do not add points
 	if (calStatus == cal_warmup) {
 		showFullMessage((char*) "Please wait for sensor warmup!", true);
-		delay(1500);
-		return true;
+		delay(1000);
+		return false;
 	}
 redraw:
 	//Background
@@ -774,13 +774,6 @@ void hotColdChooserHandler() {
 
 /* Select the limit in hot/cold mode */
 void hotColdChooser() {
-	//Still in warmup, do not add points
-	if (calStatus == cal_warmup) {
-		showFullMessage((char*) "Please wait for sensor warmup!", true);
-		delay(1500);
-		hotColdMode = EEPROM.read(eeprom_hotColdMode);
-		return;
-	}
 	//Background & title
 	mainMenuBackground();
 	mainMenuTitle((char*) "Set Limit");
@@ -827,6 +820,13 @@ void hotColdChooser() {
 
 /* Menu to display hot or cold areas */
 bool hotColdMenu() {
+	//Still in warmup, do not add points
+	if (calStatus == cal_warmup) {
+		showFullMessage((char*) "Please wait for sensor warmup!", true);
+		delay(1000);
+		return false;
+	}
+
 redraw:
 	//Background
 	mainMenuBackground();
@@ -879,8 +879,8 @@ redraw:
 				EEPROM.write(eeprom_hotColdMode, hotColdMode);
 				return true;
 			}
-			//BACK
-			if (pressedButton == 2)
+			//Back
+			if (pressedButton == 3)
 				return false;
 		}
 	}
@@ -956,7 +956,7 @@ bool colorMenu() {
 	//Do not show in visual mode
 	if (displayMode == displayMode_visual) {
 		showFullMessage((char*) "No use in visual mode", true);
-		delay(1500);
+		delay(1000);
 		return false;
 	}
 
@@ -1210,7 +1210,7 @@ bool mainMenuSelect(byte pos, byte page) {
 	if (page == 1) {
 		//Load menu
 		if (pos == 0) {
-			load();
+			loadFiles();
 			return true;
 		}
 		//File Transfer
@@ -1247,7 +1247,7 @@ bool mainMenuSelect(byte pos, byte page) {
 		//Isotherm or adjust visual
 		if (pos == 1) {
 			if (displayMode == displayMode_thermal)
-				hotColdMenu();
+				return hotColdMenu();
 			else
 				return adjustCombinedMenu();
 			return true;

@@ -369,42 +369,30 @@ void playVideo(char* dirname, int imgCount) {
 	uint16_t numberOfFrames = getVideoFrameNumber(dirname);
 	char filename[] = "00000.DAT";
 	char buffer[14];
-
+	
 	//Play forever
 	while (true) {
 		//Go through the frames
 		for (int i = 0; i < numberOfFrames; i++) {
-			//Check for touch press
-			if (touch.touched())
-				loadTouchIRQ();
-			if (loadTouch != loadTouch_none)
-				return;
-
 			//Get the frame name
 			frameFilename(filename, i);
 
 			//Load Raw data
 			loadRawData(filename, dirname);
 
-			//Check for touch press
-			if (touch.touched())
-				loadTouchIRQ();
-			if (loadTouch != loadTouch_none)
-				return;
-
 			//Display Raw Data
 			displayRawData();
-
-			//Check for touch press
-			if (touch.touched())
-				loadTouchIRQ();
-			if (loadTouch != loadTouch_none)
-				return;
 
 			//Create string
 			sprintf(buffer, "%5d / %-5d", i + 1, numberOfFrames);
 			//Display GUI
 			displayGUI(imgCount, buffer);
+
+			//Check for touch press
+			if (touch.touched())
+				loadTouchIRQ();
+			if (loadTouch != loadTouch_none)
+				return;
 		}
 	}
 }

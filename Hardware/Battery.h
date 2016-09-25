@@ -19,44 +19,26 @@
 int getLipoPerc(float vol) {
 	if (vol >= 4.10)
 		return 100;
-	else if (vol >= 4.05)
-		return 95;
 	else if (vol >= 4.00)
 		return 90;
-	else if (vol >= 3.96)
-		return 85;
 	else if (vol >= 3.93)
 		return 80;
-	else if (vol >= 3.91)
-		return 75;
 	else if (vol >= 3.88)
 		return 70;
-	else if (vol >= 3.86)
-		return 65;
 	else if (vol >= 3.84)
 		return 60;
-	else if (vol >= 3.82)
-		return 55;
 	else if (vol >= 3.80)
 		return 50;
-	else if (vol >= 3.78)
-		return 45;
 	else if (vol >= 3.76)
 		return 40;
-	else if (vol >= 3.74)
-		return 35;
 	else if (vol >= 3.73)
 		return 30;
-	else if (vol >= 3.71)
-		return 25;
 	else if (vol >= 3.70)
 		return 20;
-	else if (vol >= 3.68)
-		return 15;
 	else if (vol >= 3.66)
 		return 10;
 	else if (vol >= 3.00)
-		return 5;
+		return 0;
 	else
 		return -1;
 }

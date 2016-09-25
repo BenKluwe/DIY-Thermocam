@@ -51,19 +51,16 @@ void initCamera() {
 	cam.setCompression(95);
 	//Test if the camera works
 	if (!cam.takePicture()) {
-		// try it again after 1 second...
-		delay(1000);
+		// try it again after 100ms
+		delay(100);
 		cam.reset();
 		//Start connection at 115.2k Baud
 		cam.begin(115200);
 		//Set camera compression
 		cam.setCompression(95);
-		delay(1000);
-		if (!cam.takePicture()) {
-			showFullMessage((char*) "Visual camera is not working!");
-			delay(1000);
+		//Try to take a picture again
+		if (!cam.takePicture())
 			setDiagnostic(diag_camera);
-		}
 	}
 	//Skip the picture
 	cam.end();

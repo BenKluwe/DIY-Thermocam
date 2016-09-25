@@ -84,6 +84,8 @@ void adjustCombinedGUI(bool firstStart = false) {
 
 /* Refresh the screen content in adjust combined menu */
 void adjustCombinedRefresh(bool firstStart = false) {
+	//Safe delay
+	delay(10);
 	//Display the preview image
 	createVisCombImg();
 	display.writeScreen(image);
@@ -205,6 +207,42 @@ bool adjustCombinedPresetSaveMenu() {
 	}
 }
 
+/* Asks the user if he really wants to leave the adjust combined menu */
+bool adjustCombinedLeave() {
+	//Title & Background
+	drawTitle((char*) "Leave Prompt", true);
+	display.setColor(VGA_BLACK);
+	display.setFont(smallFont);
+	display.setBackColor(200, 200, 200);
+	display.print((char*)"Do you really want to leave", CENTER, 80);
+	display.print((char*)"the adjust combined menu", CENTER, 100);
+	display.print((char*)"without saving the settings?", CENTER, 120);
+	//Draw the buttons
+	touchButtons.deleteAllButtons();
+	touchButtons.setTextFont(bigFont);
+	touchButtons.addButton(165, 160, 140, 55, (char*) "Yes");
+	touchButtons.addButton(15, 160, 140, 55, (char*) "No");
+	touchButtons.drawButtons();
+	touchButtons.setTextFont(smallFont);
+	//Wait for touch release
+	while (touch.touched());
+	//Touch handler
+	while (true) {
+		//If touch pressed
+		if (touch.touched() == true) {
+			int pressedButton = touchButtons.checkButtons(true);
+			//YES
+			if (pressedButton == 0) {
+				return true;
+			}
+			//NO
+			else if (pressedButton == 1) {
+				return false;
+			}
+		}
+	}
+}
+
 /* Touch handler for the new adjust combined menu */
 void adjustCombinedNewMenuHandler(bool firstStart = false) {
 	//Touch handler
@@ -228,7 +266,7 @@ void adjustCombinedNewMenuHandler(bool firstStart = false) {
 			//Alpha level
 			else if ((x >= 0) && (x <= 50) && (y >= 190) && (y <= 240)) {
 				char buffer[20];
-				if(adjCombAlpha <  0.7)
+				if (adjCombAlpha < 0.7)
 					adjCombAlpha += 0.1;
 				else
 					adjCombAlpha = 0.3;
@@ -311,8 +349,14 @@ void adjustCombinedNewMenuHandler(bool firstStart = false) {
 			}
 			//Exit without saving, not in first start
 			else if ((x >= 270) && (x <= 320) && (y >= 0) && (y <= 50) && (!firstStart)) {
-				readAdjustCombined();
-				return;
+				//Ask if the user really wants to leave
+				if (adjustCombinedLeave()) {
+					readAdjustCombined();
+					return;
+				}
+				else
+					showFullMessage((char*) "Please wait..");
+					adjustCombinedRefresh();
 			}
 		}
 	}
@@ -423,6 +467,7 @@ bool adjustCombinedMenu() {
 			//BACK
 			else if (pressedButton == 2)
 				return false;
+
 			//Change the menu name
 			adjustCombinedString(adjCombMenuPos);
 		}

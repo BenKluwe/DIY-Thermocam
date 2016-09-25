@@ -908,33 +908,33 @@ void loadTouchIRQ() {
 	uint16_t y = p.y;
 
 	//Find
-	if ((x >= 15) && (x <= 80) && (y >= 15) && (y <= 60))
+	if ((x >= 10) && (x <= 140) && (y >= 10) && (y <= 80))
 		loadTouch = loadTouch_find;
 
 	//Exit
-	else if ((x >= 200) && (x <= 305) && (y >= 180) && (y <= 225))
+	else if ((x >= 180) && (x <= 310) && (y >= 160) && (y <= 230))
 		loadTouch = loadTouch_exit;
 
 	//Previous
-	else if ((x >= 0) && (x <= 40) && (y >= 100) && (y <= 140) && (imgCount != 1))
+	else if ((x >= 10) && (x <= 140) && (y >= 90) && (y <= 150) && (imgCount != 1))
 		loadTouch = loadTouch_previous;
 
 	//Next
-	else if ((x >= 280) && (x <= 319) && (y >= 100) && (y <= 140) && (imgCount != 1))
+	else if ((x >= 180) && (x <= 310) && (y >= 90) && (y <= 150) && (imgCount != 1))
 		loadTouch = loadTouch_next;
 
 	//Delete
-	else if ((x >= 240) && (x <= 305) && (y >= 15) && (y <= 60))
+	else if ((x >= 180) && (x <= 310) && (y >= 10) && (y <= 80))
 		loadTouch = loadTouch_delete;
 		
 
 	//Convert
-	else if ((x >= 15) && (x < 140) && (y >= 180) && (y <= 225))
+	else if ((x >= 10) && (x <= 140) && (y >= 160) && (y <= 230))
 		loadTouch = loadTouch_convert;
 }
 
 /* Main entry point for loading images/videos*/
-void load() {
+void loadFiles() {
 	//Old hardware
 	if (mlx90614Version == mlx90614Version_old) {
 		showFullMessage((char*) "Checking SD card..");
@@ -985,12 +985,13 @@ void load() {
 
 		//Disable decision marker
 		loadTouch = loadTouch_none;
-
+		
 		//Load image
 		if (isImage(filename))
 			openImage(filename, imgCount);
+
 		//Play video
-		else
+		else 
 			playVideo(filename, imgCount);
 
 		//Touch actions

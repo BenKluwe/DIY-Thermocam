@@ -119,7 +119,7 @@ void initRTC() {
 	//Check if year is lower than 2016
 	if ((year() < 2016) && (EEPROM.read(eeprom_firstStart) == eeprom_setValue)) {
 		showFullMessage((char*) "Empty coin cell battery, recharge!");
-		delay(1500);
+		delay(1000);
 		setTime(0, 0, 0, 1, 1, 2016);
 		Teensy3Clock.set(now());
 	}
@@ -317,7 +317,7 @@ void initDisplay() {
 		return;
 	}
 	//If done a firmware update, do not check
-	if(EEPROM.read(eeprom_fwVersion) != fwVersion)
+	if (EEPROM.read(eeprom_fwVersion) != fwVersion)
 		return;
 
 	//Check status by writing test pixel red to 10/10
@@ -326,8 +326,8 @@ void initDisplay() {
 	uint16_t color = display.readPixel(10, 10);
 	//If failed
 	if (color != VGA_RED) {
-		//Try again after one second
-		delay(1000);
+		//Try again after 100ms second
+		delay(100);
 		//Check status by writing test pixel red to 10/10
 		display.setXY(10, 10, 10, 10);
 		display.setPixel(VGA_RED);
@@ -352,11 +352,8 @@ void initTouch() {
 		if ((point.x == 0) && (point.y == 0))
 			return;
 		//Not working
-		else {
-			showFullMessage((char*) "Touch screen is not working!");
-			delay(1000);
+		else
 			setDiagnostic(diag_touch);
-		}
 	}
 }
 
@@ -401,7 +398,7 @@ void checkFWUpgrade() {
 				showFullMessage((char*)"FW update completed, pls restart!");
 				while (true);
 			}
-				
+
 			//Clear adjust combined settings when coming from FW smaller than 2.13
 			if (eepromVersion < 213) {
 				EEPROM.write(eeprom_adjCombPreset, adjComb_temporary);
@@ -650,28 +647,28 @@ void initHardware() {
 	initSPI();
 	//Init I2C
 	initI2C();
-	//Init Display
-	initDisplay();
-	//Show Boot Screen
-	bootScreen();
 	//Init ADC
 	initADC();
 	//Init Camera module
 	initCamera();
 	//Init Touch screen
 	initTouch();
-	//Check battery for the first time
-	checkBattery();
+	//Init Display
+	initDisplay();
+	//Show Boot Screen
+	bootScreen();
 	//Init Lepton sensor
 	initLepton();
 	//Init Spot sensor
 	mlx90614Init();
-	//Init SD card
-	initSD();
 	//Init screen off timer
 	initScreenOffTimer();
 	//Disable I2C timeout
 	Wire.setDefaultTimeout(0);
 	//Init RTC
 	initRTC();
+	//Check battery for the first time
+	checkBattery();
+	//Init SD card
+	initSD();
 }
