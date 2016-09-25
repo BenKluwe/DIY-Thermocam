@@ -160,13 +160,13 @@ void calibrationScreen() {
 /* Show the first start complete screen */
 void firstStartComplete() {
 	String text[7];
-	text[0] = "Setup completed !";
+	text[0] = "First start setup completed!";
 	text[1] = "The first-time setup is";
 	text[2] = "now complete. Please reboot";
 	text[3] = "the device by turning the";
 	text[4] = "power switch off and on again.";
 	text[5] = "Afterwards, you will be redirected";
-	text[6] = "to the first start helper.";
+	text[6] = "to the align combined menu.";
 	infoScreen(text, false);
 	while (true);
 }
@@ -178,6 +178,12 @@ bool checkLiveModeHelper() {
 
 /* Help screen for the first start of live mode */
 void liveModeHelper() {
+	//Hint screen for the combined image setting
+	changeCamRes(VC0706_160x120);
+	combinedAlignmentScreen();
+	changeCamRes(VC0706_640x480);
+	//Do the first time calibration
+	calibrationScreen();
 	//Array to store up to 7 lines of text
 	String text[7];
 	//Hint screen for the live mode #1 
@@ -199,20 +205,6 @@ void liveModeHelper() {
 	showFullMessage((char*)"Please wait..");
 	//Set EEPROM marker to complete
 	EEPROM.write(eeprom_liveHelper, eeprom_setValue);
-}
-
-/* Shows the completion message for the adjust camera */
-void adjustCamComplete() {
-	String text[7];
-	text[0] = "Adjust completed!";
-	text[1] = "The adjust camera setup is";
-	text[2] = "now complete. Please reboot";
-	text[3] = "the device by turning the";
-	text[4] = "power switch off and on again.";
-	text[5] = "Afterwards, you will be redirected";
-	text[6] = "to the live mode again.";
-	infoScreen(text, false);
-	while (true);
 }
 
 
@@ -267,10 +259,6 @@ void firstStart() {
 	convertImageScreen();
 	//Hint screen for the visual image settings
 	visualImageScreen();
-	//Hint screen for the combined image setting
-	combinedAlignmentScreen();
-	//Do the first time calibration
-	calibrationScreen();
 	//Set EEPROM values
 	stdEEPROMSet();
 	//Show completion message
