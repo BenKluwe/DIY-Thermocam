@@ -72,7 +72,7 @@ void initCamera() {
 /* Output function for the JPEG Decompressor - extracts the RGB565 values into the target array */
 unsigned int output_func(JDEC * jd, void * bitmap, JRECT * rect) {
 	//Help Variables
-	byte redV, greenV, blueV, redT, greenT, blueT, red, green, blue;
+	byte redV, greenV, blueV, redT, greenT, blueT, red, green, blue, xPos;
 	unsigned short pixel, x, y, imagepos, count;
 	unsigned short * bmp = (unsigned short *)bitmap;
 	count = 0;
@@ -84,14 +84,17 @@ unsigned int output_func(JDEC * jd, void * bitmap, JRECT * rect) {
 
 			for (x = rect->left; x <= rect->right; x++) {
 
+				//Mirror visual image for old HW
+				if (mlx90614Version == mlx90614Version_old)
+					xPos = (159 - x);
+				else
+					xPos = x;
+
 				//Check if we draw inside the screen on x position
-				if (((x + (5 * adjCombRight) <= 159) && (x - (5 * adjCombLeft) >= 0))) {
+				if (((xPos + (5 * adjCombRight) <= 159) && (xPos - (5 * adjCombLeft) >= 0))) {
 
 					//Get the image position
-					if (mlx90614Version == mlx90614Version_old)
-						imagepos = (159 - x) + (y * 160);
-					else
-						imagepos = x + (y * 160);
+					imagepos = xPos + (y * 160);
 					//Do the visual alignment
 					imagepos += 5 * adjCombRight;
 					imagepos -= 5 * adjCombLeft;
@@ -122,11 +125,11 @@ unsigned int output_func(JDEC * jd, void * bitmap, JRECT * rect) {
 						//Set the pixel to the calculated RGB565 value
 						pixel = (((red & 248) | green >> 5) << 8)
 							| ((green & 28) << 3 | blue >> 3);
-						
+
 					}
 
 					//Set pixel to visual image only
-					else 
+					else
 						pixel = bmp[count++];
 
 					//Write to image buffer
@@ -181,7 +184,7 @@ void saveVisualImage() {
 /* Receive the image data and display it on the screen */
 void getVisualImage() {
 	uint8_t *buffer;
-	
+
 	//Get frame length
 	uint16_t jpglen = cam.frameLength();
 	//Define array for the jpeg data

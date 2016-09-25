@@ -369,7 +369,6 @@ void adjustCombinedNewMenu(bool firstStart = false) {
 	//Prepare the preview image
 	byte displayMode_old = displayMode;
 	displayMode = displayMode_combined;
-	changeCamRes(VC0706_160x120);
 	//Load the defaults
 	adjCombDown = 0;
 	adjCombUp = 0;
@@ -384,8 +383,6 @@ void adjustCombinedNewMenu(bool firstStart = false) {
 	showFullMessage((char*) "Please wait..");
 	//Restore the old mode
 	displayMode = displayMode_old;
-	if (displayMode == displayMode_thermal)
-		changeCamRes(VC0706_640x480);
 }
 
 /* Switch the current temperature menu item */
