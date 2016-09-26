@@ -217,20 +217,25 @@ void displayWarmup() {
 
 /* Display battery status in percentage */
 void displayBatteryStatus() {
-	//Check battery status
-	checkBattery();
+	//Check battery status every 60 seconds
+	if (batTimer == 0)
+		batTimer = millis();
+	if ((millis() - batTimer) > 60000) {
+		checkBattery();
+		batTimer = millis();
+	}
 	//USB Power only
 	if (batPercentage == -1)
 		display.print((char*) "USB Power", 240, 0);
 	//Low Battery
-	else if(batPercentage == 0)
+	else if (batPercentage == 0)
 		display.print((char*) "LOW", 270, 0);
 	//Display battery status in percentage
 	else {
 		display.printNumI(batPercentage, 280, 0, 3, ' ');
 		display.print((char*) "%", 310, 0);
 	}
-		
+
 }
 
 /* Display the date on screen */

@@ -129,9 +129,9 @@ void combinedAlignmentScreen() {
 	String text[7];
 	text[0] = "Combined Alignment";
 	text[1] = "In the next screen, you can";
-	text[2] = "align the visual image on";
-	text[3] = "top of the thermal image. Press";
-	text[4] = "'R' to reset the adjustment, 'A'";
+	text[2] = "move, increase or decrease";
+	text[3] = "the visual image on top of the";
+	text[4] = "thermal image. Press the A-button";
 	text[5] = "to change the alpha transparency";
 	text[6] = "and touch the middle to refresh.";
 	infoScreen(text);
@@ -160,7 +160,7 @@ void calibrationScreen() {
 /* Show the first start complete screen */
 void firstStartComplete() {
 	String text[7];
-	text[0] = "First start setup completed!";
+	text[0] = "Setup completed";
 	text[1] = "The first-time setup is";
 	text[2] = "now complete. Please reboot";
 	text[3] = "the device by turning the";
@@ -261,6 +261,8 @@ void firstStart() {
 	visualImageScreen();
 	//Set EEPROM values
 	stdEEPROMSet();
+	//Format storage card
+	formatCard();
 	//Show completion message
 	firstStartComplete();
 }

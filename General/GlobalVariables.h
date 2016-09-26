@@ -62,6 +62,7 @@ char saveFilename[20];
 byte diagnostic = diag_ok;
 //Battery
 int8_t batPercentage;
+long batTimer;
 //MLX90614 sensor version
 bool mlx90614Version;
 //FLIR Lepton sensor version
