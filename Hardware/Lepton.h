@@ -252,7 +252,12 @@ void initLepton() {
 	//Perform FFC if shutter is attached
 	if (leptonVersion != leptonVersion_2_NoShutter) {
 		shutterMode = shutterMode_auto;
+		long measure = millis();
 		leptonRunCalibration();
+
+		//If the FFC was not performed on the first time
+		if((millis() - measure) < 1500)
+			leptonRunCalibration();
 	}
 	//No shutter attached
 	else

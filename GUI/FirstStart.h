@@ -157,6 +157,16 @@ void calibrationScreen() {
 	calibrationProcess(true);
 }
 
+/* Format the SD card for the first time */
+void firstFormat() {
+	//Old HW generation, check SD card
+	if (mlx90614Version == mlx90614Version_old)
+		while (!checkSDCard());
+	//Format the SD card
+	showFullMessage((char*) "Formatting SD card..");
+	formatCard();
+}
+
 /* Show the first start complete screen */
 void firstStartComplete() {
 	String text[7];
@@ -259,10 +269,10 @@ void firstStart() {
 	convertImageScreen();
 	//Hint screen for the visual image settings
 	visualImageScreen();
+	//Format SD card for the first time
+	firstFormat();
 	//Set EEPROM values
 	stdEEPROMSet();
-	//Format storage card
-	formatCard();
 	//Show completion message
 	firstStartComplete();
 }

@@ -333,8 +333,11 @@ void initTouch() {
 		if ((point.x == 0) && (point.y == 0))
 			return;
 		//Not working
-		else
+		else {
+			showFullMessage((char*) "Touch screen is not working!");
+			delay(1000);
 			setDiagnostic(diag_touch);
+		}
 	}
 }
 
@@ -362,7 +365,7 @@ void checkFWUpgrade() {
 	//Show message after firmware upgrade
 	if (eepromVersion != fwVersion) {
 		//Upgrade from old Thermocam-V4 firmware
-		if ((mlx90614Version == mlx90614Version_old) && (eeprom_liveHelper != eeprom_setValue)) {
+		if ((mlx90614Version == mlx90614Version_old) && (EEPROM.read(eeprom_liveHelper) != eeprom_setValue)) {
 			//Clear EEPROM
 			clearEEPROM();
 			//Show message and wait
@@ -637,26 +640,26 @@ void initHardware() {
 	initI2C();
 	//Init ADC
 	initADC();
-	//Init Camera module
-	initCamera();
-	//Init Touch screen
-	initTouch();
 	//Init Display
 	initDisplay();
 	//Show Boot Screen
 	bootScreen();
+	//Init Touch screen
+	initTouch();
+	//Init Camera module
+	initCamera();
 	//Init Lepton sensor
 	initLepton();
 	//Init Spot sensor
 	mlx90614Init();
-	//Init screen off timer
-	initScreenOffTimer();
 	//Disable I2C timeout
 	Wire.setDefaultTimeout(0);
+	//Init SD card
+	initSD();
+	//Init screen off timer
+	initScreenOffTimer();
 	//Init RTC
 	initRTC();
 	//Check battery for the first time
 	checkBattery();
-	//Init SD card
-	initSD();
 }
