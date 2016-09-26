@@ -304,39 +304,20 @@ void setDisplayRotation() {
 /* Initializes the display and checks if it is working */
 void initDisplay() {
 	//Init the display
-	display.InitLCD();
+	byte check = display.InitLCD();
+	//Status not okay, try again
+	if (check != 0xE0) {
+		delay(100);
+		check = display.InitLCD();
+		//Second attempt failed, set diagnostic
+		if (check != 0xE0) 
+			setDiagnostic(diag_display);
+	}
+
 	//Set the display rotation
 	setDisplayRotation();
 	//Link display library to image array
 	display.imagePtr = image;
-
-	//If returning from mass storage, do not check
-	if (EEPROM.read(eeprom_massStorage) == eeprom_setValue) {
-		//Reset marker
-		EEPROM.write(eeprom_massStorage, 0);
-		return;
-	}
-	//If done a firmware update, do not check
-	if (EEPROM.read(eeprom_fwVersion) != fwVersion)
-		return;
-
-	//Check status by writing test pixel red to 10/10
-	display.setXY(10, 10, 10, 10);
-	display.setPixel(VGA_RED);
-	uint16_t color = display.readPixel(10, 10);
-	//If failed
-	if (color != VGA_RED) {
-		//Try again after 100ms second
-		delay(100);
-		//Check status by writing test pixel red to 10/10
-		display.setXY(10, 10, 10, 10);
-		display.setPixel(VGA_RED);
-		uint16_t color = display.readPixel(10, 10);
-		//Failed again, set diagnostic
-		if (color != VGA_RED)
-			setDiagnostic(diag_display);
-	}
-
 }
 
 /* Initializes the touch module and checks if it is working */
@@ -490,6 +471,7 @@ void readAdjustCombined() {
 		adjCombRight = EEPROM.read(eeprom_adjComb1Right);
 		adjCombUp = EEPROM.read(eeprom_adjComb1Up);
 		adjCombAlpha = EEPROM.read(eeprom_adjComb1Alpha) / 100.0;
+		adjCombFactor = EEPROM.read(eeprom_adjComb1Factor) / 100.0;
 	}
 	//Adjust combined preset 2
 	else if ((adjCombPreset == adjComb_preset2) && (EEPROM.read(eeprom_adjComb2Set) == eeprom_setValue)) {
@@ -498,6 +480,7 @@ void readAdjustCombined() {
 		adjCombRight = EEPROM.read(eeprom_adjComb2Right);
 		adjCombUp = EEPROM.read(eeprom_adjComb2Up);
 		adjCombAlpha = EEPROM.read(eeprom_adjComb2Alpha) / 100.0;
+		adjCombFactor = EEPROM.read(eeprom_adjComb2Factor) / 100.0;
 	}
 	//Adjust combined preset 3
 	else if ((adjCombPreset == adjComb_preset3) && (EEPROM.read(eeprom_adjComb3Set) == eeprom_setValue)) {
@@ -506,6 +489,7 @@ void readAdjustCombined() {
 		adjCombRight = EEPROM.read(eeprom_adjComb3Right);
 		adjCombUp = EEPROM.read(eeprom_adjComb3Up);
 		adjCombAlpha = EEPROM.read(eeprom_adjComb3Alpha) / 100.0;
+		adjCombFactor = EEPROM.read(eeprom_adjComb3Factor) / 100.0;
 	}
 	//Load defaults
 	else {
@@ -514,7 +498,11 @@ void readAdjustCombined() {
 		adjCombLeft = 0;
 		adjCombRight = 0;
 		adjCombAlpha = 0.5;
+		adjCombFactor = 1.0;
 	}
+	//Set factor to standard if invalid
+	if ((adjCombFactor < 0.7) || (adjCombFactor > 1.0))
+		adjCombFactor = 1.0;
 }
 
 /* Reads the old settings from EEPROM */

@@ -14,7 +14,7 @@ void UTFT::_convert_float(char *buf, double num, int width, byte prec)
 }
 
 
-void UTFT::InitLCD(byte orientation) {
+byte UTFT::InitLCD(byte orientation) {
 
 	pinMode(LED, OUTPUT);
 
@@ -30,8 +30,10 @@ void UTFT::InitLCD(byte orientation) {
 	} else {
 		pcs_data = 0;
 		pcs_command = 0;
-		return;
+		return 0;
 	}
+
+	byte diag = readcommand8(ILI9341_RDSELFDIAG);
 
 	SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
 	const uint8_t *addr = init_commands;
@@ -55,6 +57,8 @@ void UTFT::InitLCD(byte orientation) {
 	cfont.font = 0;
 	_transparent = false;
 	setRotation(45);
+
+	return diag;
 }
 
 void UTFT::setXY(word x1, word y1, word x2, word y2) {

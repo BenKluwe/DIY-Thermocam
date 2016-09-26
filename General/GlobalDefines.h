@@ -123,7 +123,6 @@
 #define eeprom_adjComb1Set      126
 #define eeprom_minMaxPoints     127
 #define eeprom_screenOffTime    128
-#define eeprom_massStorage      129
 #define eeprom_calSlopeSet      130
 #define eeprom_calSlopeBase     131 //4 Byte (131-134)
 #define eeprom_hotColdMode      135
@@ -156,6 +155,9 @@
 #define eeprom_maxTemp3High     162
 #define eeprom_minMax3Set       163
 #define eeprom_minMaxPreset     164
+#define eeprom_adjComb1Factor   165
+#define eeprom_adjComb2Factor   166
+#define eeprom_adjComb3Factor   167
 #define eeprom_fwVersion        250
 #define eeprom_setValue         200
 

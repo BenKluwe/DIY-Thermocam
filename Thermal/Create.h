@@ -305,6 +305,61 @@ void convertColors() {
 	}
 }
 
+//Resize the pixels of thermal image
+void resizePixels(unsigned short* pixels, int w1, int h1, int w2, int h2) {
+	//Calculate the ratio
+	int x_ratio = (int)((w1 << 16) / w2) + 1;
+	int y_ratio = (int)((h1 << 16) / h2) + 1;
+	int x2, y2;
+	for (int i = 0; i < h2; i++) {
+		for (int j = 0; j < w2; j++) {
+			x2 = ((j * x_ratio) >> 16);
+			y2 = ((i * y_ratio) >> 16);
+			pixels[(i * w1) + j] = pixels[(y2 * w1) + x2];
+		}
+	}
+	//Set the other pixels to zero
+	for (int j = 0; j < h2; j++) {
+		for (int i = w2; i < w1; i++) {
+			pixels[i + (j * 160)] = 65535;
+		}
+	}
+	for (int j = h2; j < h1; j++) {
+		for (int i = 0; i < w1; i++) {
+			pixels[i + (j * 160)] = 65535;
+		}
+	}
+}
+
+/* Resize the thermal image */
+void resizeImage() {
+	uint16_t newWidth = round(adjCombFactor * 160);
+	uint16_t newHeight = round(adjCombFactor * 120);
+	resizePixels(image, 160, 120, newWidth, newHeight);
+	uint16_t rightMove = round((160 - newWidth) / 2.0);
+	//Move the image right
+	for (int i = 0; i < rightMove; i++) {
+		//First for all pixels
+		for (int col = 159; col > 0; col--)
+			for (int row = 0; row < 120; row++)
+				image[col + (row * 160)] = image[col - 1 + (row * 160)];
+		//And then fill the last one with white
+		for (int row = 0; row < 120; row++)
+			image[row * 160] = 65535;
+	}
+	//Move the image down
+	uint16_t downMove = round((120 - newHeight) / 2.0);
+	for (int i = 0; i < downMove; i++) {
+		//First for all pixels
+		for (int col = 0; col < 160; col++)
+			for (int row = 119; row > 0; row--)
+				image[col + (row * 160)] = image[col + ((row - 1) * 160)];
+		//And then fill the last one with white
+		for (int col = 0; col < 160; col++)
+			image[col] = 65535;
+	}
+}
+
 /* Calculates the fill pixel for visual/combined */
 void calcFillPixel(uint16_t x, uint16_t y) {
 	uint16_t pixel;
@@ -400,6 +455,9 @@ void createVisCombImg() {
 		//Convert lepton data to RGB565 colors
 		convertColors();
 	}
+
+	//Resize the thermal image
+	resizeImage();
 
 	//Fill the edges
 	fillEdges();

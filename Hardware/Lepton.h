@@ -260,7 +260,7 @@ void initLepton() {
 
 	//Set the calibration timer
 	calTimer = millis();
-	//Set calibration status to warmup
+	//Set calibration status to warmup if not coming from mass storage
 	calStatus = cal_warmup;
 	//Set the compensation value to zero
 	calComp = 0;

@@ -144,7 +144,7 @@ ILI9341_DFUNCTR, 0x08, 0x82,
 
 class UTFT {
 public:
-	void InitLCD(byte orientation = LANDSCAPE);
+	byte InitLCD(byte orientation = LANDSCAPE);
 	void clrScr();
 	void drawPixel(int x, int y);
 	void drawLine(int x1, int y1, int x2, int y2);
@@ -259,6 +259,59 @@ public:
 
 		SPI.endTransaction();
 		return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+	}
+
+	uint8_t readcommand8(uint8_t c, uint8_t index = 0)
+	{
+		uint16_t wTimeout = 0xffff;
+		uint8_t r = 0;
+
+		SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+		while (((KINETISK_SPI0.SR) & (15 << 12)) && (--wTimeout)); // wait until empty
+
+																   // Make sure the last frame has been sent...
+		KINETISK_SPI0.SR = SPI_SR_TCF;   // dlear it out;
+		wTimeout = 0xffff;
+		while (!((KINETISK_SPI0.SR) & SPI_SR_TCF) && (--wTimeout)); // wait until it says the last frame completed
+
+																	// clear out any current received bytes
+		wTimeout = 0x10;    // should not go more than 4...
+		while ((((KINETISK_SPI0.SR) >> 4) & 0xf) && (--wTimeout)) {
+			r = KINETISK_SPI0.POPR;
+		}
+
+		//writecommand(0xD9); // sekret command
+		KINETISK_SPI0.PUSHR = 0xD9 | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
+		//	while (((KINETISK_SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+
+		// writedata(0x10 + index);
+		KINETISK_SPI0.PUSHR = (0x10 + index) | (pcs_data << 16) | SPI_PUSHR_CTAS(0);
+		//	while (((KINETISK_SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+
+		// writecommand(c);
+		KINETISK_SPI0.PUSHR = c | (pcs_command << 16) | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;
+		//	while (((KINETISK_SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+
+		// readdata
+		KINETISK_SPI0.PUSHR = 0 | (pcs_data << 16) | SPI_PUSHR_CTAS(0);
+		//	while (((KINETISK_SPI0.SR) & (15 << 12)) > (3 << 12)) ; // wait if FIFO full
+
+		// Now wait until completed.
+		wTimeout = 0xffff;
+		while (((KINETISK_SPI0.SR) & (15 << 12)) && (--wTimeout)); // wait until empty
+
+																   // Make sure the last frame has been sent...
+		KINETISK_SPI0.SR = SPI_SR_TCF;   // dlear it out;
+		wTimeout = 0xffff;
+		while (!((KINETISK_SPI0.SR) & SPI_SR_TCF) && (--wTimeout)); // wait until it says the last frame completed
+
+		wTimeout = 0x10;    // should not go more than 4...
+							// lets get all of the values on the FIFO
+		while ((((KINETISK_SPI0.SR) >> 4) & 0xf) && (--wTimeout)) {
+			r = KINETISK_SPI0.POPR;
+		}
+		SPI.endTransaction();
+		return r;  // get the received byte... should check for it first...
 	}
 
 	//Write RGB565 data to the screen

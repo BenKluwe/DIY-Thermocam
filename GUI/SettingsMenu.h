@@ -16,7 +16,7 @@
 /* Methods */
 
 /* Draw the GUI elements for the adjust combined menu */
-void adjustCombinedGUI(bool firstStart = false) {
+void adjustCombinedGUI() {
 	//Color and font
 	setTextColor();
 	display.setFont(bigFont);
@@ -50,24 +50,21 @@ void adjustCombinedGUI(bool firstStart = false) {
 	display.drawLine(315, 119, 305, 129);
 	display.drawLine(315, 120, 305, 130);
 	display.drawLine(315, 121, 305, 131);
+	//Decrease
+	display.drawLine(5, 224, 25, 224);
+	display.drawLine(5, 225, 25, 225);
+	display.drawLine(5, 226, 25, 226);
+	//Increase
+	display.drawLine(5, 14, 25, 14);
+	display.drawLine(5, 15, 25, 15);
+	display.drawLine(5, 16, 25, 16);
+	display.drawLine(14, 5, 14, 25);
+	display.drawLine(15, 5, 15, 25);
+	display.drawLine(16, 5, 16, 25);
 
-	//Refresh screen
-	display.print('R', 5, 5);
 	//Alpha level
-	display.print('A', 5, 225);
+	display.print('A', 300, 5);
 
-	//In first start, do not print the close symbol
-	if (!firstStart) {
-		//Color for close
-		display.setColor(255, 0, 0);
-		//Close button
-		display.drawLine(294, 5, 314, 25);
-		display.drawLine(295, 5, 315, 25);
-		display.drawLine(296, 5, 316, 25);
-		display.drawLine(294, 25, 314, 5);
-		display.drawLine(295, 25, 315, 5);
-		display.drawLine(296, 25, 316, 5);
-	}
 	//Color for confirm
 	display.setColor(0, 255, 0);
 	//Confirm button
@@ -83,14 +80,14 @@ void adjustCombinedGUI(bool firstStart = false) {
 }
 
 /* Refresh the screen content in adjust combined menu */
-void adjustCombinedRefresh(bool firstStart = false) {
+void adjustCombinedRefresh() {
 	//Safe delay
 	delay(10);
 	//Display the preview image
 	createVisCombImg();
 	display.writeScreen(image);
 	//Display the GUI
-	adjustCombinedGUI(firstStart);
+	adjustCombinedGUI();
 }
 
 /* Shows on the screen that is refreshes */
@@ -158,6 +155,7 @@ bool adjustCombinedPresetSaveMenu() {
 					EEPROM.write(eeprom_adjComb1Up, adjCombUp);
 					EEPROM.write(eeprom_adjComb1Down, adjCombDown);
 					EEPROM.write(eeprom_adjComb1Alpha, round(adjCombAlpha * 100.0));
+					EEPROM.write(eeprom_adjComb1Factor, round(adjCombFactor * 100.0));
 					EEPROM.write(eeprom_adjComb1Set, eeprom_setValue);
 					EEPROM.write(eeprom_adjCombPreset, adjComb_preset1);
 					break;
@@ -168,6 +166,7 @@ bool adjustCombinedPresetSaveMenu() {
 					EEPROM.write(eeprom_adjComb2Up, adjCombUp);
 					EEPROM.write(eeprom_adjComb2Down, adjCombDown);
 					EEPROM.write(eeprom_adjComb2Alpha, round(adjCombAlpha * 100.0));
+					EEPROM.write(eeprom_adjComb2Factor, round(adjCombFactor * 100.0));
 					EEPROM.write(eeprom_adjComb2Set, eeprom_setValue);
 					EEPROM.write(eeprom_adjCombPreset, adjComb_preset2);
 					break;
@@ -178,6 +177,7 @@ bool adjustCombinedPresetSaveMenu() {
 					EEPROM.write(eeprom_adjComb3Up, adjCombUp);
 					EEPROM.write(eeprom_adjComb3Down, adjCombDown);
 					EEPROM.write(eeprom_adjComb3Alpha, round(adjCombAlpha * 100.0));
+					EEPROM.write(eeprom_adjComb3Factor, round(adjCombFactor * 100.0));
 					EEPROM.write(eeprom_adjComb3Set, eeprom_setValue);
 					EEPROM.write(eeprom_adjCombPreset, adjComb_preset3);
 					break;
@@ -207,42 +207,6 @@ bool adjustCombinedPresetSaveMenu() {
 	}
 }
 
-/* Asks the user if he really wants to leave the adjust combined menu */
-bool adjustCombinedLeave() {
-	//Title & Background
-	drawTitle((char*) "Leave Prompt", true);
-	display.setColor(VGA_BLACK);
-	display.setFont(smallFont);
-	display.setBackColor(200, 200, 200);
-	display.print((char*)"Do you really want to leave", CENTER, 80);
-	display.print((char*)"the adjust combined menu", CENTER, 100);
-	display.print((char*)"without saving the settings?", CENTER, 120);
-	//Draw the buttons
-	touchButtons.deleteAllButtons();
-	touchButtons.setTextFont(bigFont);
-	touchButtons.addButton(165, 160, 140, 55, (char*) "Yes");
-	touchButtons.addButton(15, 160, 140, 55, (char*) "No");
-	touchButtons.drawButtons();
-	touchButtons.setTextFont(smallFont);
-	//Wait for touch release
-	while (touch.touched());
-	//Touch handler
-	while (true) {
-		//If touch pressed
-		if (touch.touched() == true) {
-			int pressedButton = touchButtons.checkButtons(true);
-			//YES
-			if (pressedButton == 0) {
-				return true;
-			}
-			//NO
-			else if (pressedButton == 1) {
-				return false;
-			}
-		}
-	}
-}
-
 /* Touch handler for the new adjust combined menu */
 void adjustCombinedNewMenuHandler(bool firstStart = false) {
 	//Touch handler
@@ -253,29 +217,21 @@ void adjustCombinedNewMenuHandler(bool firstStart = false) {
 			TS_Point p = touch.getPoint();
 			uint16_t x = p.x;
 			uint16_t y = p.y;
-			//Reset
+			//Increase
 			if ((x >= 0) && (x <= 50) && (y >= 0) && (y <= 50)) {
-				adjustCombinedLoading();
-				adjCombDown = 0;
-				adjCombUp = 0;
-				adjCombLeft = 0;
-				adjCombRight = 0;
-				adjCombAlpha = 0.5;
-				adjustCombinedRefresh();
+				if (adjCombFactor < 1.0) {
+					adjustCombinedLoading();
+					adjCombFactor += 0.02;
+					adjustCombinedRefresh();
+				}
 			}
-			//Alpha level
+			//Decrease
 			else if ((x >= 0) && (x <= 50) && (y >= 190) && (y <= 240)) {
-				char buffer[20];
-				if (adjCombAlpha < 0.7)
-					adjCombAlpha += 0.1;
-				else
-					adjCombAlpha = 0.3;
-				sprintf(buffer, "Alpha set to %.1f", adjCombAlpha);
-				display.setFont(bigFont);
-				setTextColor();
-				display.print(buffer, CENTER, 110);
-				display.setFont(smallFont);
-				adjustCombinedRefresh();
+				if (adjCombFactor > 0.70) {
+					adjustCombinedLoading();
+					adjCombFactor -= 0.02;
+					adjustCombinedRefresh();
+				}
 			}
 			//Left
 			else if ((x >= 0) && (x <= 50) && (y >= 95) && (y <= 145)) {
@@ -337,6 +293,7 @@ void adjustCombinedNewMenuHandler(bool firstStart = false) {
 					EEPROM.write(eeprom_adjComb1Up, adjCombUp);
 					EEPROM.write(eeprom_adjComb1Down, adjCombDown);
 					EEPROM.write(eeprom_adjComb1Alpha, round(adjCombAlpha * 100.0));
+					EEPROM.write(eeprom_adjComb1Factor, round(adjCombFactor * 100.0));
 					EEPROM.write(eeprom_adjComb1Set, eeprom_setValue);
 					EEPROM.write(eeprom_adjCombPreset, adjComb_preset1);
 					return;
@@ -347,16 +304,19 @@ void adjustCombinedNewMenuHandler(bool firstStart = false) {
 				adjustCombinedLoading();
 				adjustCombinedRefresh();
 			}
-			//Exit without saving, not in first start
-			else if ((x >= 270) && (x <= 320) && (y >= 0) && (y <= 50) && (!firstStart)) {
-				//Ask if the user really wants to leave
-				if (adjustCombinedLeave()) {
-					readAdjustCombined();
-					return;
-				}
+			//Change alpha
+			else if ((x >= 270) && (x <= 320) && (y >= 0) && (y <= 50)) {
+				char buffer[20];
+				if (adjCombAlpha < 0.7)
+					adjCombAlpha += 0.1;
 				else
-					showFullMessage((char*) "Please wait..");
-					adjustCombinedRefresh();
+					adjCombAlpha = 0.3;
+				sprintf(buffer, "Alpha set to %.1f", adjCombAlpha);
+				display.setFont(bigFont);
+				setTextColor();
+				display.print(buffer, CENTER, 110);
+				display.setFont(smallFont);
+				adjustCombinedRefresh();
 			}
 		}
 	}
@@ -375,8 +335,9 @@ void adjustCombinedNewMenu(bool firstStart = false) {
 	adjCombLeft = 0;
 	adjCombRight = 0;
 	adjCombAlpha = 0.5;
+	adjCombFactor = 1.0;
 	//Show the preview image
-	adjustCombinedRefresh(firstStart);
+	adjustCombinedRefresh();
 	//Run the handler and 
 	adjustCombinedNewMenuHandler(firstStart);
 	//Show message
