@@ -67,30 +67,15 @@ bool leptonReadFrame(byte line, byte seg) {
 }
 
 /* Trigger a flat-field-correction on the Lepton */
-void leptonRunFFC() {
-	byte error;
-	byte errorCounter = 0;
-	do {
-		Wire.beginTransmission(0x2A);
-		Wire.write(0x00);
-		Wire.write(0x04);
-		Wire.write(0x02);
-		Wire.write(0x42);
-		error = Wire.endTransmission();
-		if (error) {
-			errorCounter++;
-			delay(10);
-		}
-		//Trigger error and continue
-		if ((error) && (errorCounter > 10)) {
-			showFullMessage((char*) "Lepton I2C FFC not working!");
-			delay(1000);
-			setDiagnostic(diag_lep_conf);
-			return;
-		}
-	} while (error != 0);
-	//Wait some time
+bool leptonRunFFC() {
+	Wire.beginTransmission(0x2A);
+	Wire.write(0x00);
+	Wire.write(0x04);
+	Wire.write(0x02);
+	Wire.write(0x42);
+	byte error = Wire.endTransmission();
 	delay(2000);
+	return error;
 }
 
 /* Select I2C Register on the Lepton */
@@ -250,26 +235,11 @@ void initLepton() {
 	if (leptonVersion != leptonVersion_2_NoShutter) {
 		//Set shutter mode to auto
 		shutterMode = shutterMode_auto;
-		//Init error counter
-		byte errCnt = 0;
-		//Run until FFC has been performed
-		while (true) {
-			//Measure time
-			long measure = millis();
-			//Run the FFC
-			leptonRunFFC();
-			//If the time is exactly 2s, leave
-			if ((millis() - measure) == 2000)
-				break;
-			//Otherwise raise error counter
-			errCnt++;
-			//Too many errors, show error message and return
-			if (errCnt == 255) {
-				showFullMessage((char*) "Lepton shutter not working!");
-				delay(1000);
-				setDiagnostic(diag_lep_conf);
-				break;
-			}
+		//Run the FFC
+		if (leptonRunFFC()) {
+			showFullMessage((char*) "Lepton shutter not working!");
+			delay(1000);
+			setDiagnostic(diag_lep_conf);
 		}
 	}
 	//No shutter attached

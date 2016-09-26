@@ -305,8 +305,12 @@ void setDisplayRotation() {
 void initDisplay() {
 	//Init the display
 	byte check = display.InitLCD();
+
+	//When returning from mass storage, do not check
+	if (EEPROM.read(eeprom_massStorage) == eeprom_setValue)
+		EEPROM.write(eeprom_massStorage, 0);
 	//Status not okay, try again
-	if (check != 0xE0) {
+	else if (check != 0xE0) {
 		delay(100);
 		check = display.InitLCD();
 		//Second attempt failed, set diagnostic
