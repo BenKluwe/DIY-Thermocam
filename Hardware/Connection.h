@@ -346,7 +346,7 @@ bool serialHandler() {
 		break;
 		//Run the shutter
 	case CMD_SHUTTERRUN:
-		leptonRunCalibration();
+		leptonRunFFC();
 		//Send ACK
 		Serial.write(CMD_SHUTTERRUN);
 		break;

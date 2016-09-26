@@ -67,7 +67,7 @@ bool leptonReadFrame(byte line, byte seg) {
 }
 
 /* Trigger a flat-field-correction on the Lepton */
-void leptonRunCalibration() {
+void leptonRunFFC() {
 	byte error;
 	byte errorCounter = 0;
 	do {
@@ -243,21 +243,34 @@ void leptonRadSet(bool enable)
 
 /* Check which hardware revision of the FLIR Lepton is connected */
 void initLepton() {
-	//Short delay
-	delay(1500);
-
 	//Check the Lepton HW Revision
 	leptonCheckVersion();
 
 	//Perform FFC if shutter is attached
 	if (leptonVersion != leptonVersion_2_NoShutter) {
+		//Set shutter mode to auto
 		shutterMode = shutterMode_auto;
-		long measure = millis();
-		leptonRunCalibration();
-
-		//If the FFC was not performed on the first time
-		if((millis() - measure) < 1500)
-			leptonRunCalibration();
+		//Init error counter
+		byte errCnt = 0;
+		//Run until FFC has been performed
+		while (true) {
+			//Measure time
+			long measure = millis();
+			//Run the FFC
+			leptonRunFFC();
+			//If the time is exactly 2s, leave
+			if ((millis() - measure) == 2000)
+				break;
+			//Otherwise raise error counter
+			errCnt++;
+			//Too many errors, show error message and return
+			if (errCnt == 255) {
+				showFullMessage((char*) "Lepton shutter not working!");
+				delay(1000);
+				setDiagnostic(diag_lep_conf);
+				break;
+			}
+		}
 	}
 	//No shutter attached
 	else

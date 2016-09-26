@@ -102,7 +102,7 @@ void checkWarmup() {
 	if (((calStatus == cal_warmup) && (millis() - calTimer > 60000))) {
 		//Perform FFC if shutter is attached
 		if (leptonVersion != leptonVersion_2_NoShutter)
-			leptonRunCalibration();
+			leptonRunFFC();
 		//Set calibration status to standard
 		calStatus = cal_standard;
 	}
@@ -169,7 +169,7 @@ void calibrationProcess(bool firstStart) {
 
 		//Perform FFC if shutter is attached
 		if (leptonVersion != leptonVersion_2_NoShutter)
-			leptonRunCalibration();
+			leptonRunFFC();
 
 		//Get 100 different calibration samples
 		while (counter < 100) {
