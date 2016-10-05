@@ -60,4 +60,10 @@ void checkBattery(bool start = false) {
 		vBat += 0.05;
 	//Calculate the percentage
 	batPercentage = getLipoPerc(vBat);
+
+	//Show warning, if battery is low
+	if (batPercentage <= 20) {
+		showFullMessage((char*) "Battery almost empty, charge!");
+		delay(1000);
+	}
 }

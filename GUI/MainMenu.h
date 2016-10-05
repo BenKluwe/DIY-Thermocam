@@ -1374,4 +1374,6 @@ void mainMenu() {
 	touchButtons.deleteAllButtons();
 	//Disable menu marker
 	showMenu = false;
+	//Wait a short time
+	delay(10);
 }

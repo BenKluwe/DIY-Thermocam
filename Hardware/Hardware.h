@@ -318,6 +318,13 @@ void initDisplay() {
 			setDiagnostic(diag_display);
 	}
 
+	//Read rotation enabled from EEPROM
+	byte read = EEPROM.read(eeprom_rotationEnabled);
+	if ((read == false) || (read == true))
+		rotationEnabled = read;
+	else
+		rotationEnabled = false;
+
 	//Set the display rotation
 	setDisplayRotation();
 	//Link display library to image array
@@ -330,19 +337,6 @@ void initTouch() {
 	pinMode(pin_touch_irq, INPUT);
 	//Init the touch
 	touch.begin(&screenPressed);
-	//If not capacitive, check if working
-	if (!touch.capacitive) {
-		TS_Point point = touch.getPoint();
-		//No touch, working
-		if ((point.x == 0) && (point.y == 0))
-			return;
-		//Not working
-		else {
-			showFullMessage((char*) "Touch screen is not working!");
-			delay(1000);
-			setDiagnostic(diag_touch);
-		}
-	}
 }
 
 /* Checks for hardware issues */
@@ -587,12 +581,6 @@ void readEEPROM() {
 		colorbarEnabled = read;
 	else
 		colorbarEnabled = true;
-	//Rotation Enabled
-	read = EEPROM.read(eeprom_rotationEnabled);
-	if ((read == false) || (read == true))
-		rotationEnabled = read;
-	else
-		rotationEnabled = false;
 	//Display Mode
 	read = EEPROM.read(eeprom_displayMode);
 	if ((read == displayMode_thermal) || (read == displayMode_visual) || (read == displayMode_combined))
