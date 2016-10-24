@@ -13,8 +13,6 @@
 *
 */
 
-/* Defines */
-
 //Pins
 #define pin_button        2
 #define pin_laser         4
@@ -231,5 +229,6 @@
 #define loadTouch_next     4
 #define loadTouch_exit     5
 #define loadTouch_convert  6
+#define loadTouch_middle   7
 
 

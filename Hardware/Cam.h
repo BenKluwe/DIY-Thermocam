@@ -38,26 +38,20 @@ void changeCamRes(byte size) {
 	//Wait some time
 	delay(300);
 	//Re-establish the connection to the device
-	cam.begin(115200);
-	//Set camera compression
-	cam.setCompression(95);
+	cam.begin();
 }
 
 /* Init the camera module */
 void initCamera() {
 	//Start connection at 115.2k Baud
-	cam.begin(115200);
-	//Set camera compression
-	cam.setCompression(95);
+	cam.begin();
 	//Test if the camera works
 	if (!cam.takePicture()) {
 		//Try it again after 100ms
 		delay(100);
 		cam.reset();
 		//Start connection at 115.2k Baud
-		cam.begin(115200);
-		//Set camera compression
-		cam.setCompression(95);
+		cam.begin();
 		//Try to take a picture again
 		if (!cam.takePicture()) {
 			showFullMessage((char*) "Visual camera is not working!");
@@ -70,6 +64,30 @@ void initCamera() {
 	//Check if the resolution is set to big
 	if (cam.getImageSize() != VC0706_640x480)
 		changeCamRes(VC0706_640x480);
+}
+
+/* Transfer the bytestream from the VC0706 camera */
+void transPicture(byte bytesToRead, uint8_t* buffer)
+{
+	int avail;
+	//Send counter and buffer length to zero
+	uint8_t counter = 0;
+	uint8_t bufferLen = 0;
+	//As long as no timeout and not all bytes read
+	while ((10 != counter) && (bufferLen != (bytesToRead + 5))) {
+		//Check how many bytes are available
+		avail = Serial1.available();
+		//If there are none, raise timeout counter
+		if (avail <= 0) {
+			delay(1);
+			counter++;
+			continue;
+		}
+		//Reset timeout counter if there is a packet
+		counter = 0;
+		//Add the data to the buffer
+		buffer[bufferLen++] = Serial1.read();
+	}
 }
 
 /* Output function for the JPEG Decompressor - extracts the RGB565 values into the target array */
@@ -165,53 +183,73 @@ void captureVisualImage() {
 
 /* Receive the visual image from the camera and save it on the SD card */
 void saveVisualImage() {
-	uint8_t *buffer;
-
+	//Get frame length
 	uint16_t jpglen = cam.frameLength();
 	//Start alternative clockline for the SD card
 	startAltClockline();
+	//Create the buffer
+	uint8_t* buffer = (uint8_t*)malloc(128 + 5);
 	//Transfer data
 	while (jpglen > 0) {
-		uint8_t bytesToRead = min(jpglen, 64);
-		buffer = cam.readPicture(bytesToRead);
+		//Calculate the bytes left to read
+		uint8_t bytesToRead = min(jpglen, 128);
+		//Send the read command
+		if (!cam.readPicture(bytesToRead))
+			continue;
+		//Transfer the picture
+		transPicture(bytesToRead, buffer);
+		//Write it to the SD card
 		sdFile.write(buffer, bytesToRead);
+		//Substract transfered bytes from total
 		jpglen -= bytesToRead;
 	}
+	//Free the buffer
+	free(buffer);
+	//End camera
+	cam.end();
+	//Close the file
 	sdFile.close();
 	//End SD Transmission
 	endAltClockline();
-	//End camera
-	cam.end();
 }
 
 /* Receive the image data and display it on the screen */
 void getVisualImage() {
-	uint8_t *buffer;
-
 	//Get frame length
 	uint16_t jpglen = cam.frameLength();
+	//Store length
+	uint16_t length = jpglen;
 	//Define array for the jpeg data
 	uint8_t* jpegData = (uint8_t*)calloc(jpglen, sizeof(uint8_t));
 	//Count variable
 	uint16_t counter = 0;
-	//Store length
-	uint16_t length = jpglen;
+	//Create the buffer
+	uint8_t* buffer = (uint8_t*)malloc(128 + 5);
 	//Transfer data
-	while (length > 0) {
-		uint8_t bytesToRead = min(length, 64);
-		buffer = cam.readPicture(bytesToRead);
+	while (jpglen > 0) {
+		//Calculate the bytes left to read
+		uint8_t bytesToRead = min(jpglen, 128);
+		//Send the read command
+		if (!cam.readPicture(bytesToRead))
+			continue;
+		//Transfer the picture
+		transPicture(bytesToRead, buffer);
+		//Add it to the jpeg data buffer
 		for (int i = 0; i < bytesToRead; i++) {
 			jpegData[counter] = buffer[i];
 			counter++;
 		}
-		length -= bytesToRead;
+		//Substract transfered bytes from total
+		jpglen -= bytesToRead;
 	}
+	//Free the buffer
+	free(buffer);
 	//End transmission
 	cam.end();
 
 	//Decompress the image
 	iodev.jpic = jpegData;
-	iodev.jsize = jpglen;
+	iodev.jsize = length;
 	//the offset is zero
 	iodev.joffset = 0;
 	//Define space for the decompressor
@@ -232,23 +270,29 @@ void getVisualImage() {
 
 /* Receive the visual image and transfer it to the serial port */
 void transferVisualImage() {
-	uint8_t *buffer;
-
 	//Get frame length
 	uint16_t jpglen = cam.frameLength();
 	//Transfer frame length
 	Serial.write((jpglen & 0xFF00) >> 8);
 	Serial.write(jpglen & 0x00FF);
-
-	//Store length
-	uint16_t length = jpglen;
+	//Create the buffer
+	uint8_t* buffer = (uint8_t*)malloc(128 + 5);
 	//Transfer data
-	while (length > 0) {
-		uint8_t bytesToRead = min(length, 64);
-		buffer = cam.readPicture(bytesToRead);
+	while (jpglen > 0) {
+		//Calculate the bytes left to read
+		uint8_t bytesToRead = min(jpglen, 128);
+		//Send the read command
+		if (!cam.readPicture(bytesToRead))
+			continue;
+		//Transfer the picture
+		transPicture(bytesToRead, buffer);
+		//Write it to the serial port
 		Serial.write(buffer, bytesToRead);
-		length -= bytesToRead;
+		//Substract transfered bytes from total
+		jpglen -= bytesToRead;
 	}
+	//Free the buffer
+	free(buffer);
 	//End transmission
 	cam.end();
 }

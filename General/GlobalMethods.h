@@ -68,7 +68,7 @@ void storeCalibration();
 void changeDisplayOptions(byte* pos);
 void displayInfos();
 void longTouchHandler();
-void showTransMessage(char* msg, bool bottom = false);
+void showTransMessage(char* msg);
 void createJPGFile(char* filename, char* dirname = NULL);
 void floatToBytes(uint8_t* farray, float val);
 bool extButtonPressed();

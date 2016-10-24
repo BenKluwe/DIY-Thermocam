@@ -54,11 +54,9 @@ bool screenOffCheck() {
 			return true;
 		}
 		//Touch pressed, restart timer
-		else {
-			screenPressed = false;
-			screenOff.reset();
-			return false;
-		}
+		screenPressed = false;
+		screenOff.reset();
+		return false;
 	}
 	return false;
 }
@@ -108,6 +106,8 @@ void initGPIO() {
 	pinMode(pin_laser, OUTPUT);
 	digitalWrite(pin_laser, LOW);
 	laserEnabled = false;
+	//Set the touch IRQ pin to input
+	pinMode(pin_touch_irq, INPUT);
 	//Set button as input
 	pinMode(pin_button, INPUT);
 }
@@ -212,8 +212,9 @@ bool checkScreenLight() {
 	return digitalRead(pin_lcd_backlight);
 }
 
-/* Checks the specific devic from the diagnostic variable */
+/* Checks the specific device from the diagnostic variable */
 bool checkDiagnostic(byte device) {
+	//Returns false if the device does not work
 	return (diagnostic >> device) & 1;
 }
 
@@ -278,15 +279,14 @@ bool checkSDCard() {
 			showFullMessage((char*) "Please insert SDCard!");
 			delay(1000);
 			//Go back 
+			endAltClockline();
 			return false;
 		}
-		else
-			return true;
 		endAltClockline();
+		return true;
 	}
 	//All other do not need the check
-	else
-		return true;
+	return true;
 }
 
 /* Sets the display rotation depending on the setting */
@@ -303,20 +303,19 @@ void setDisplayRotation() {
 
 /* Initializes the display and checks if it is working */
 void initDisplay() {
+	byte count = 0;
 	//Init the display
 	byte check = display.InitLCD();
 
-	//When returning from mass storage, do not check
-	if (EEPROM.read(eeprom_massStorage) == eeprom_setValue)
-		EEPROM.write(eeprom_massStorage, 0);
-	//Status not okay, try again
-	else if (check != 0xE0) {
-		delay(100);
+	//Status not okay, try again 10 times
+	while((check != 0xE0) && (count < 10)){
+		delay(10);
 		check = display.InitLCD();
-		//Second attempt failed, set diagnostic
-		if (check != 0xE0) 
-			setDiagnostic(diag_display);
+		count++;
 	}
+	//If it failed after 10 attemps, show diag
+	if (check != 0xE0)
+		setDiagnostic(diag_display);
 
 	//Read rotation enabled from EEPROM
 	byte read = EEPROM.read(eeprom_rotationEnabled);
@@ -327,27 +326,62 @@ void initDisplay() {
 
 	//Set the display rotation
 	setDisplayRotation();
+
 	//Link display library to image array
 	display.imagePtr = image;
 }
 
 /* Initializes the touch module and checks if it is working */
 void initTouch() {
-	//Set the touch IRQ pin to input
-	pinMode(pin_touch_irq, INPUT);
 	//Init the touch
 	touch.begin(&screenPressed);
+	//If not capacitive, check if connected
+	if(!touch.capacitive)
+	{
+		//Get a point
+		TS_Point point = touch.getPoint();
+		//Wait short
+		delay(10);
+		//Read one time to stabilize
+		digitalRead(pin_touch_irq);
+		//Init touch status
+		bool touchStatus = true;
+		//Check IRQ 10 times, should be HIGH
+		for(int i=0;i<10;i++)
+		{
+			if (!digitalRead(pin_touch_irq))
+				touchStatus = false;
+			delay(10);
+		}
+		//Check if touch is working, otherwise set diagnostic
+		if(!(((point.x == 0) && (point.y == 0) && (touchStatus == true))
+			|| ((point.x != 0) && (point.y != 0) && (touchStatus == false))))
+			setDiagnostic(diag_touch);
+	}
+	
 }
 
 /* Checks for hardware issues */
 void checkDiagnostic() {
+	//When returning from mass storage, do not check
+	if (EEPROM.read(eeprom_massStorage) == eeprom_setValue)
+	{
+		EEPROM.write(eeprom_massStorage, 0);
+		diagnostic = diag_ok;
+	}	
+	//If the diagnostic is not okay
 	if (diagnostic != diag_ok) {
-		//Show the diagnostics over serial
-		printDiagnostic();
-		//Show it on the screen
-		showDiagnostic();
-		//Wait
-		delay(2000);
+		//If the display is working
+		if (checkDiagnostic(diag_display))
+		{
+			//Show it on the screen
+			showDiagnostic();
+			//Try to continue after two seconds
+			delay(2000);
+		}
+		//If not, show it over serial
+		else
+			printDiagnostic();
 	}
 }
 
@@ -371,15 +405,10 @@ void checkFWUpgrade() {
 			while (true);
 		}
 		//Upgrade
-		else if (fwVersion > eepromVersion) {
-			//If coming from a firmware version smaller than 2.00
-			if (eepromVersion < 200) {
-				//Clear EEPROM
+		if (fwVersion > eepromVersion) {
+			//If coming from a firmware version smaller than 2.00, clear EEPROM
+			if (eepromVersion < 200)
 				clearEEPROM();
-				//Show message and wait
-				showFullMessage((char*)"FW update completed, pls restart!");
-				while (true);
-			}
 
 			//Clear adjust combined settings when coming from FW smaller than 2.13
 			if (eepromVersion < 213) {
@@ -388,16 +417,20 @@ void checkFWUpgrade() {
 				EEPROM.write(eeprom_adjComb2Set, 0);
 				EEPROM.write(eeprom_adjComb3Set, 0);
 			}
-			showFullMessage((char*)"FW update completed!");
-			delay(1000);
+			//Show upgrade completed message
+			showFullMessage((char*)"FW update completed, pls restart!");
+			//Set EEPROM firmware version to current one
+			EEPROM.write(eeprom_fwVersion, fwVersion);
+			//Wait for hard-reset
+			while (true);
 		}
-		//Downgrade
-		else {
-			showFullMessage((char*)"FW downgrade completed!");
-			delay(1000);
-		}
+
+		//Show downgrade completed message
+		showFullMessage((char*)"FW downgrade completed, pls restart!");
 		//Set EEPROM firmware version to current one
 		EEPROM.write(eeprom_fwVersion, fwVersion);
+		//Wait for hard-reset
+		while (true);
 	}
 }
 

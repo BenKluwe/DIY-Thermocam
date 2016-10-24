@@ -858,6 +858,8 @@ void loadFind(char* filename, int* pos) {
 	clearData();
 	//Search files
 	searchFiles();
+	//Fill screen
+	display.fillScr(200, 200, 200);
 	//Let the user choose a new file
 	chooseFile(filename);
 	isImage(filename);
@@ -927,10 +929,13 @@ void loadTouchIRQ() {
 	else if ((x >= 180) && (x <= 310) && (y >= 10) && (y <= 80))
 		loadTouch = loadTouch_delete;
 		
-
 	//Convert
 	else if ((x >= 10) && (x <= 140) && (y >= 160) && (y <= 230))
 		loadTouch = loadTouch_convert;
+
+	//Middle
+	else if ((x > 140) && (x < 180) && (y > 80) && (y < 160))
+		loadTouch = loadTouch_middle;
 }
 
 /* Main entry point for loading images/videos*/
@@ -955,9 +960,7 @@ void loadFiles() {
 	float old_calSlope = calSlope;
 
 	//Load message
-	showFullMessage((char*) "Please wait..");
-	//Change settings
-	loadSettings();
+	showFullMessage((char*) "Please wait..", true);
 	//Alloc space
 	loadAlloc();
 	//Clear all previous data
@@ -967,10 +970,16 @@ void loadFiles() {
 
 	//If there are no images or videos, return
 	if (imgCount == 0) {
-		showFullMessage((char*) "No images/videos found!");
+		//Show message
+		showFullMessage((char*) "No images/videos found!", true);
 		delay(1000);
+		//Deallocate space
+		loadDeAlloc();
 		return;
 	}
+
+	//Change settings
+	loadSettings();
 
 	//Open the latest file
 	int pos = imgCount - 1;
@@ -1055,9 +1064,8 @@ void loadFiles() {
 		if (exit)
 			break;
 	}
-
-	//Display message
-	showFullMessage((char*)"Returning to live mode..");
+	//Fill screen white
+	display.fillScr(255, 255, 255);
 
 	//Deallocate space
 	loadDeAlloc();

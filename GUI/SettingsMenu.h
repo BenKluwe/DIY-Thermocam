@@ -128,6 +128,10 @@ void adjustCombinedPresetSaveString(int pos) {
 bool adjustCombinedPresetSaveMenu() {
 	//Save the current position inside the menu
 	byte menuPos = 0;
+	//Border
+	display.setColor(VGA_BLACK);
+	display.fillRoundRect(5, 5, 315, 235);
+	display.fillRoundRect(4, 4, 316, 236);
 	//Background
 	mainMenuBackground();
 	//Title
@@ -390,7 +394,6 @@ bool adjustCombinedMenu() {
 				case 0:
 					adjustCombinedNewMenu();
 					return true;
-					break;
 					//Load Preset 1
 				case 1:
 					EEPROM.write(eeprom_adjCombPreset, adjComb_preset1);
@@ -891,7 +894,7 @@ void convertImageMenu(bool firstStart = false) {
 	touchButtons.addButton(170, 60, 130, 70, (char*) "BMP & DAT");
 	if (firstStart) {
 		touchButtons.addButton(20, 150, 280, 70, (char*) "Set");
-		convertEnabled = true;
+		convertEnabled = false;
 	}
 	else
 		touchButtons.addButton(20, 150, 280, 70, (char*) "Back");
@@ -1206,7 +1209,7 @@ void displayMenu() {
 
 /* Touch handler for the settings menu */
 void settingsMenuHandler() {
-	while (1) {
+	while (true) {
 		//touch press
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons();

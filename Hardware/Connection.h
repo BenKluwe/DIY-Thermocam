@@ -75,6 +75,16 @@ void serialClear() {
 	}
 }
 
+/* Enter the serial connection mode if no display attached */
+bool checkNoDisplay()
+{
+	//No connection to ILI9341, touch and SD -> go to USB serial
+	if (!checkDiagnostic(diag_display) && !checkDiagnostic(diag_touch) && !checkDiagnostic(diag_sd))
+		return true;
+	//Display connected
+	return false;
+}
+
 /* Send the lepton raw limits */
 void sendRawLimits() {
 	//Send min
@@ -171,6 +181,10 @@ void changeColorScheme() {
 
 /* Sets the time */
 void setTime() {
+	//If no display connected, do not set time
+	if (checkNoDisplay())
+		return;
+
 	//Wait for time string, maximum 1 second
 	uint32_t timer = millis();
 	while (!Serial.available() && ((millis() - timer) < 1000));
@@ -314,7 +328,14 @@ bool serialHandler() {
 		break;
 		//Send low visual imahe
 	case CMD_VISUALIMGLOW:
-		sendVisualImg();
+		//Only when camera is working
+		if (checkDiagnostic(diag_camera)) {
+			changeCamRes(VC0706_320x240);
+			sendVisualImg();
+		}
+		//Send false
+		else
+			Serial.write(0);
 		break;
 		//Send calibration data
 	case CMD_CALIBDATA:
@@ -388,9 +409,14 @@ bool serialHandler() {
 		break;
 		//Send high visual image
 	case CMD_VISUALIMGHIGH:
-		changeCamRes(VC0706_640x480);
-		sendVisualImg();
-		changeCamRes(VC0706_320x240);
+		//Only when camera working
+		if (checkDiagnostic(diag_camera)) {
+			changeCamRes(VC0706_640x480);
+			sendVisualImg();
+		}
+		//Otherwise send false
+		else
+			Serial.write(0);
 		break;
 		//Send firmware version
 	case CMD_FWVERSION:
@@ -407,6 +433,9 @@ bool serialHandler() {
 		//End connection
 	case CMD_END:
 		return true;
+		//Start connection, send ACK
+	case CMD_START:
+		Serial.write(CMD_START);
 		break;
 	}
 	Serial.flush();
@@ -446,8 +475,8 @@ void buttonHandler() {
 void serialOutput() {
 	//Send the frames
 	while (true) {
-		//Abort transmission
-		if (touch.touched())
+		//Abort transmission when touched
+		if (touch.touched() && checkDiagnostic(diag_touch))
 			break;
 		//Check warmup status
 		checkWarmup();
@@ -462,11 +491,9 @@ void serialOutput() {
 		//Find min and max if not in manual mode and limits not locked
 		if ((autoMode) && (!limitsLocked))
 			limitValues();
-
 		//Check button press if not in terminal mode
 		if (extButtonPressed())
 			buttonHandler();
-
 		//Check for serial commands
 		if (Serial.available() > 0) {
 			//Check for exit
@@ -476,11 +503,43 @@ void serialOutput() {
 	}
 }
 
+/* Method to init some basic values in case no display is used */
+void serialInit()
+{
+	//Send error message if important components missing
+	if (!checkDiagnostic(diag_spot))
+		Serial.println("Spot sensor FAILED");
+	//Check lepton config
+	if (!checkDiagnostic(diag_lep_conf))
+		Serial.println("Lepton I2C FAILED");
+	//Check lepton data
+	if (!checkDiagnostic(diag_lep_data))
+		Serial.println("Lepton SPI FAILED");
+
+	//Temperature format
+	tempFormat = tempFormat_celcius;
+	//Color scheme
+	colorScheme = colorScheme_rainbow;
+	colorMap = colorMap_rainbow;
+	colorElements = 256;
+	//Filter Type
+	filterType = filterType_gaussian;
+	//Display Mode
+	displayMode = displayMode_thermal;
+	//Hot / cold mode
+	hotColdMode = hotColdMode_disabled;
+	//Calibration slope
+	calSlope = cal_stdSlope;
+	//Min/Max Points
+	minMaxPoints = minMaxPoints_disabled;
+	//Spot disable
+	spotEnabled = false;
+	//Points disable
+	pointsEnabled = false;
+}
+
 /* Tries to establish a connection to a thermal viewer or video output module*/
 void serialConnect() {
-	//Set camera resolution to medium
-	changeCamRes(VC0706_320x240);
-
 	//Show message
 	showFullMessage((char*)"Serial connection detected !");
 	display.print((char*) "Touch screen to return", CENTER, 170);

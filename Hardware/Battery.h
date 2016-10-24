@@ -51,8 +51,6 @@ void checkBattery(bool start = false) {
 	float vUSB = (batMeasure->analogRead(pin_usb_measure) * 1.5 * 3.3) / batMeasure->getMaxValue(ADC_0);
 	//If the battery gauge is not working
 	if ((vBat == -1) && (vUSB <= 1.0)) {
-		showFullMessage((char*) "Battery gauge is not working!");
-		delay(1000);
 		setDiagnostic(diag_bat);
 	}
 	//If not connected, add some value to correct it
@@ -62,7 +60,7 @@ void checkBattery(bool start = false) {
 	batPercentage = getLipoPerc(vBat);
 
 	//Show warning, if battery is low
-	if (batPercentage <= 20) {
+	if ((batPercentage <= 20) && (batPercentage != -1)) {
 		showFullMessage((char*) "Battery almost empty, charge!");
 		delay(1000);
 	}

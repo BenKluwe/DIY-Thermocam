@@ -93,6 +93,13 @@ void checkImageSave() {
 
 	//Show message and build filename
 	if (imgSave != imgSave_disabled) {
+		//Capture image command if we are in thermal mode
+		if ((visualEnabled == true) && (displayMode == displayMode_thermal))
+		{
+			//Only do when camera is connected
+			if(checkDiagnostic(diag_camera))
+				captureVisualImage();
+		}
 		//Build save filename from the current time & date
 		createSDName(saveFilename);
 		//Show save message
@@ -206,7 +213,7 @@ void saveDisplayImage(char* filename, char* dirname) {
 				sdBuffer[(x * 2) + 1] = (pixel & 0xFF00) >> 8;
 			}
 			//Write them to the sd card with 640x480 resolution
-			for (int i = 0; i < 2; i++) {
+			for (int j = 0; j < 2; j++) {
 				for (uint16_t x = 0; x < 320; x++) {
 					sdFile.write(sdBuffer[x * 2]);
 					sdFile.write(sdBuffer[(x * 2) + 1]);
@@ -224,22 +231,21 @@ void saveDisplayImage(char* filename, char* dirname) {
 	endAltClockline();
 }
 
-/* Saves images to the internal storage */
-void saveImage() {
-	//Capture image command if we are in thermal mode
-	if ((visualEnabled == true) && (displayMode == displayMode_thermal))
-		captureVisualImage();
-
+/* Saves additional images to the internal storage */
+void saveImages() {
 	//Save Bitmap image if activated or in visual / combined mode
 	if ((convertEnabled == true) || (displayMode == displayMode_visual) || (displayMode == displayMode_combined))
+	{
+		//Display on screen
+		display.writeScreen(image);
+		//Save it
 		saveDisplayImage(saveFilename);
+	}	
 
-	//Eventually save optical image
-	if ((visualEnabled == true) && (displayMode == displayMode_thermal)) {
+	//Eventually save high-res visual image if activated in thermal mode and connected
+	if ((visualEnabled == true) && (displayMode == displayMode_thermal) && (checkDiagnostic(diag_camera))) {
 		//Create file
 		createJPGFile(saveFilename);
-		//Display message
-		showTransMessage((char*) "Save Visual JPG..");
 		//For old hardware, save mirrored image
 		if (mlx90614Version == mlx90614Version_old) {
 			changeCamRes(VC0706_160x120);
@@ -253,15 +259,9 @@ void saveImage() {
 			saveVisualImage();
 	}
 
-	//Show Message on screen
-	if (((visualEnabled == true) || (convertEnabled)) && (displayMode == displayMode_thermal))
-		showTransMessage((char*) "All saved!", true);
-	else if (displayMode == displayMode_thermal)
-		showTransMessage((char*) "Thermal RAW saved!");
-	else if (displayMode == displayMode_visual)
-		showTransMessage((char*) "Visual BMP saved!");
-	else if (displayMode == displayMode_combined)
-		showTransMessage((char*) "Combined BMP saved!");
+	//If new image written before, show done message
+	if ((convertEnabled == true) || (displayMode == displayMode_visual) || (displayMode == displayMode_combined))
+		showTransMessage((char*) "Done!");
 
 	//Disable image save marker
 	imgSave = imgSave_disabled;

@@ -104,7 +104,7 @@ void convertImageScreen() {
 	text[4] = "raw image file on the device. ";
 	text[5] = "You can still convert images man-";
 	text[6] = "ually in the load menu later.";
-	infoScreen(text);;
+	infoScreen(text);
 	//Convert image
 	convertImageMenu(true);
 }
@@ -231,7 +231,7 @@ void stdEEPROMSet() {
 	mlx90614SetEmissivity();
 	//Set device EEPROM settings
 	EEPROM.write(eeprom_rotationEnabled, false);
-	EEPROM.write(eeprom_spotEnabled, true);
+	EEPROM.write(eeprom_spotEnabled, false);
 	EEPROM.write(eeprom_colorbarEnabled, true);
 	EEPROM.write(eeprom_batteryEnabled, true);
 	EEPROM.write(eeprom_timeEnabled, true);
@@ -240,7 +240,7 @@ void stdEEPROMSet() {
 	EEPROM.write(eeprom_storageEnabled, true);
 	EEPROM.write(eeprom_displayMode, displayMode_thermal);
 	EEPROM.write(eeprom_textColor, textColor_white);
-	EEPROM.write(eeprom_minMaxPoints, minMaxPoints_disabled);
+	EEPROM.write(eeprom_minMaxPoints, minMaxPoints_max);
 	EEPROM.write(eeprom_screenOffTime, screenOffTime_disabled);
 	EEPROM.write(eeprom_hotColdMode, hotColdMode_disabled);
 	//Set Color Scheme to Rainbow

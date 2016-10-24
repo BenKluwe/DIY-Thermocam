@@ -114,16 +114,13 @@ bool calibrationRepeat() {
 			//YES
 			if (pressedButton == 0) {
 				return true;
-				break;
 			}
 			//NO
-			else if (pressedButton == 1) {
+			if (pressedButton == 1) {
 				return false;
-				break;
 			}
 		}
 	}
-	return true;
 }
 
 /* Calibration Chooser */
@@ -147,23 +144,20 @@ bool calibrationChooser() {
 			if (pressedButton == 0) {
 				calibrationProcess();
 				return true;
-				break;
 			}
 			//DELETE
-			else if (pressedButton == 1) {
+			if (pressedButton == 1) {
 				calSlope = cal_stdSlope;
 				calOffset = mlx90614Amb - (calSlope * 8192) + calComp;
 				calStatus = cal_standard;
 				storeCalibration();
 				return true;
-				break;
 			}
 			//BACK
-			else if (pressedButton == 2)
+			if (pressedButton == 2)
 				return false;
 		}
 	}
-	return true;
 }
 
 /* Switch the current preset menu item */
@@ -476,7 +470,6 @@ bool tempLimitsPresets() {
 				case 0:
 					tempLimitsManual();
 					return true;
-					break;
 					//Load Preset 1
 				case 1:
 					EEPROM.write(eeprom_minMaxPreset, minMax_preset1);
@@ -620,7 +613,6 @@ redraw:
 				return false;
 		}
 	}
-	return false;
 }
 
 /* Select the color for the live mode string */
@@ -1030,6 +1022,13 @@ bool modeMenu() {
 			}
 			//Visual
 			else if (pressedButton == 1) {
+				//If the visual camera is not working
+				if(!checkDiagnostic(diag_camera))
+				{
+					showFullMessage((char*)"Cam not connected!", true);
+					delay(1000);
+					return false;
+				}
 				showFullMessage((char*)"Please wait..", true);
 				changeCamRes(VC0706_160x120);
 				displayMode = displayMode_visual;
@@ -1038,6 +1037,13 @@ bool modeMenu() {
 			}
 			//Combined
 			else if (pressedButton == 2) {
+				//If the visual camera is not working
+				if (!checkDiagnostic(diag_camera))
+				{
+					showFullMessage((char*)"Cam not connected!", true);
+					delay(1000);
+					return false;
+				}
 				showFullMessage((char*)"Please wait..", true);
 				changeCamRes(VC0706_160x120);
 				displayMode = displayMode_combined;
@@ -1211,7 +1217,6 @@ bool mainMenuSelect(byte pos, byte page) {
 		//Load menu
 		if (pos == 0) {
 			loadFiles();
-			return true;
 		}
 		//File Transfer
 		if (pos == 1) {
@@ -1250,7 +1255,6 @@ bool mainMenuSelect(byte pos, byte page) {
 				return hotColdMenu();
 			else
 				return adjustCombinedMenu();
-			return true;
 		}
 		//Points
 		if (pos == 2) {
@@ -1365,15 +1369,13 @@ void mainMenu() {
 	drawMainMenu(mainMenuPos);
 	//Touch handler - return true if exit to Main menu, otherwise false
 	mainMenuHandler(&mainMenuPos);
-	//Wait for touch release
-	while (touch.touched());
 	//Restore old fonts
 	display.setFont(smallFont);
 	touchButtons.setTextFont(smallFont);
 	//Delete the old buttons
 	touchButtons.deleteAllButtons();
+	//Wait a short time
+	delay(500);
 	//Disable menu marker
 	showMenu = false;
-	//Wait a short time
-	delay(10);
 }

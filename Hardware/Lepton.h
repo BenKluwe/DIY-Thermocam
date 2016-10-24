@@ -88,7 +88,7 @@ void leptonSetReg(byte reg) {
 
 /* Read I2C Register on the lepton */
 int leptonReadReg(byte reg) {
-	uint16_t reading = 0;
+	uint16_t reading;
 	leptonSetReg(reg);
 	Wire.requestFrom(0x2A, 2);
 	reading = Wire.read();
@@ -155,11 +155,10 @@ void leptonCheckVersion() {
 	Wire.write(0x48);
 	Wire.write(0x1C);
 	byte error = Wire.endTransmission();
-	//Lepton I2C error, continue
+	//Lepton I2C error, set diagnostic
 	if (error != 0) {
-		showFullMessage((char*) "Lepton I2C getVersion not working!");
-		delay(1000);
 		setDiagnostic(diag_lep_conf);
+		leptonVersion = leptonVersion_2_NoShutter;
 		return;
 	}
 	//Transfer the new package
@@ -235,12 +234,9 @@ void initLepton() {
 	if (leptonVersion != leptonVersion_2_NoShutter) {
 		//Set shutter mode to auto
 		shutterMode = shutterMode_auto;
-		//Run the FFC
-		if (leptonRunFFC()) {
-			showFullMessage((char*) "Lepton shutter not working!");
-			delay(1000);
+		//Run the FFC and check return
+		if (leptonRunFFC())
 			setDiagnostic(diag_lep_conf);
-		}
 	}
 	//No shutter attached
 	else
@@ -268,10 +264,7 @@ void initLepton() {
 	//Repeat as long as the frame is not valid, equals sync
 	while (((leptonFrame[0] & 0x0F) == 0x0F) && ((millis() - calTimer) < 1000));
 	leptonEndSPI();
-	//If sync not received after a second, show error message
-	if ((leptonFrame[0] & 0x0F) == 0x0F) {
-		showFullMessage((char*) "Lepton SPI is not working!");
-		delay(1000);
+	//If sync not received after a second, set diagnostic
+	if ((leptonFrame[0] & 0x0F) == 0x0F)
 		setDiagnostic(diag_lep_data);
-	}
 }

@@ -149,8 +149,6 @@ void mlx90614SetMax() {
 		delay(100);
 		//If we failed after 10 retries, set error and continue
 		if (count == 10) {
-			showFullMessage((char*) "Spot sensor setMax not working!");
-			delay(2000);
 			setDiagnostic(diag_spot);
 			return;
 		}
@@ -179,8 +177,6 @@ void mlx90614SetMin() {
 		delay(100);
 		//If we failed after 10 retries, set error and continue
 		if (count == 10) {
-			showFullMessage((char*) "Spot sensor setMin not working!");
-			delay(2000);
 			setDiagnostic(diag_spot);
 			return;
 		}
@@ -209,8 +205,6 @@ void mlx90614SetEmissivity() {
 		delay(100);
 		//If we failed after 10 retries, set error and continue
 		if (count == 10) {
-			showFullMessage((char*) "Spot sensor emissivity not working!");
-			delay(2000);
 			setDiagnostic(diag_spot);
 			return;
 		}
@@ -239,7 +233,7 @@ void mlx90614SetFilter() {
 	}
 
 	//New MLX90614 with gain factor of 100
-	else if (mlx90614Version == mlx90614Version_new) {
+	else {
 		filterSettings = 46964;
 		MSB = 0x74;
 		LSB = 0xB7;
@@ -255,8 +249,6 @@ void mlx90614SetFilter() {
 		delay(100);
 		//If we failed after 10 retries, set error and continue
 		if (count == 10) {
-			showFullMessage((char*) "Spot sensor setFilter not working!");
-			delay(2000);
 			setDiagnostic(diag_spot);
 			return;
 		}
@@ -282,12 +274,10 @@ float mlx90614GetAmb() {
 	bool check = true;
 	byte count = 0;
 	do {
-		mlx90614Measure(1, &check);
-		//If we cannot connect, set error and continue
-		if (count == 100) {
-			showFullMessage((char*) "Error reading ambient temperature!");
+		mlx90614Measure(true, &check);
+		//If we cannot connect,continue
+		if (count == 100)
 			return 0;
-		}
 		count++;
 		delay(10);
 	} while (check == false);
@@ -299,12 +289,10 @@ float mlx90614GetTemp() {
 	bool check = true;
 	byte count = 0;
 	do {
-		mlx90614Measure(0, &check);
-		//If we cannot connect, set error and continue
-		if (count == 100) {
-			showFullMessage((char*) "Error reading object temperature!");
+		mlx90614Measure(false, &check);
+		//If we cannot connect, continue
+		if (count == 100)
 			return 0;
-		}
 		count++;
 		delay(10);
 	} while (check == false);
@@ -321,36 +309,28 @@ void mlx90614Init() {
 	if ((EEPROM.read(eeprom_firstStart) == eeprom_setValue) && (diagnostic == diag_ok)) {
 		//Check Filter Temp
 		if (mlx90614CheckFilter() == false) {
-			showFullMessage((char*)"Spot filter invalid, rewrite..");
-			delay(2000);
 			mlx90614SetFilter();
 			setDiagnostic(diag_spot);
 		}
 		//Check Min Temp
 		if (mlx90614CheckMin() == false) {
-			showFullMessage((char*)"Spot minTemp invalid, rewrite..");
-			delay(2000);
 			mlx90614SetMin();
 			setDiagnostic(diag_spot);
 		}
 		//Check Max Temp
 		if (mlx90614CheckMax() == false) {
-			showFullMessage((char*)"Spot maxTemp invalid, rewrite..");
-			delay(2000);
 			mlx90614SetMax();
 			setDiagnostic(diag_spot);
 		}
 		//Check Emissivity
 		if (mlx90614CheckEmissivity() == false) {
-			showFullMessage((char*)"Spot emissivity invalid, rewrite..");
-			delay(2000);
 			mlx90614SetEmissivity();
 			setDiagnostic(diag_spot);
 		}
 		//Show message, if one of the settings had to be re-written
 		if (!checkDiagnostic(diag_spot)) {
 			showFullMessage((char*)"Spot EEPROM updated, restart device!");
-			while (1);
+			while (true);
 		}
 	}
 
@@ -358,11 +338,9 @@ void mlx90614Init() {
 	bool check = true;
 	byte count = 0;
 	do {
-		mlx90614Measure(0, &check);
+		mlx90614Measure(false, &check);
 		//If we cannot connect, set error and continue
 		if (count == 100) {
-			showFullMessage((char*) "Spot sensor objTemp internal error!");
-			delay(2000);
 			setDiagnostic(diag_spot);
 			break;
 		}
@@ -374,11 +352,9 @@ void mlx90614Init() {
 	check = true;
 	count = 0;
 	do {
-		mlx90614Measure(1, &check);
+		mlx90614Measure(true, &check);
 		//If we cannot connect, set error and continue
 		if (count == 100) {
-			showFullMessage((char*)"Spot sensor ambTemp internal error!");
-			delay(2000);
 			setDiagnostic(diag_spot);
 			break;
 		}

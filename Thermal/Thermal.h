@@ -405,8 +405,9 @@ void changeColorScheme(byte* pos) {
 /* Show the thermal/visual/combined image on the screen */
 void showImage() {
 	//Draw thermal image on screen if created previously and not in menu nor in video save
-	if ((imgSave != imgSave_set) && (!showMenu) && (!videoSave))
-		display.writeScreen(image);
+	if ((!imgSave) && (!showMenu) && (!videoSave))
+			display.writeScreen(image);
+
 	//If the image has been created, set to save
 	if (imgSave == imgSave_create)
 		imgSave = imgSave_save;
@@ -533,7 +534,7 @@ void liveMode() {
 
 		//Save the converted / visual image
 		if (imgSave == imgSave_save)
-			saveImage();
+			saveImages();
 
 		//Go into video mode
 		if (videoSave == videoSave_menu)

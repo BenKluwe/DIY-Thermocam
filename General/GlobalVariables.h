@@ -41,7 +41,7 @@ SdFat sd;
 SdFile sdFile;
 String sdInfo;
 //Camera
-Camera cam(&Serial1);
+Camera cam;
 
 //Current color scheme - standard is rainbow
 byte colorScheme;

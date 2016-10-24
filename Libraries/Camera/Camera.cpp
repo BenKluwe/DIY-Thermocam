@@ -1,26 +1,21 @@
 #include "Camera.h"
 
 void Camera::common_init(void) {
-	hwSerial = NULL;
 	frameptr = 0;
 	bufferLen = 0;
 	serialNum = 0;
 }
-Camera::Camera(HardwareSerial *ser) {
+Camera::Camera() {
 	common_init();
-	hwSerial = ser;
 }
 
-boolean Camera::begin(uint32_t baud) {
-	hwSerial->begin(38400);
+boolean Camera::begin() {
+	Serial1.begin(38400);
 	delay(15);
-	if (baud != 38400) {
-		changeBaudRate();
-		hwSerial->begin(115200);
-		delay(15);
-		return true;
-	}
-	return reset();
+	changeBaudRate();
+	Serial1.begin(115200);
+	delay(15);
+	return true;
 }
 
 boolean Camera::reset() {
@@ -86,18 +81,16 @@ uint8_t Camera::available(void) {
 	return bufferLen;
 }
 
-uint8_t * Camera::readPicture(uint8_t n) {
+bool Camera::readPicture(uint8_t n) {
 	uint8_t args[] = { 0x0C, 0x0, 0x0A,
 					  0, 0, (uint8_t)(frameptr >> 8), (uint8_t)(frameptr & 0xFF),
 					  0, 0, 0, n,
 					  10 >> 8, 10 & 0xFF };
 
 	if (!runCommand(0x32, args, sizeof(args), 5, false))
-		return 0;
-	if (readResponse(n + 5, 10) == 0)
-		return 0;
+		return false;
 	frameptr += n;
-	return camerabuff;
+	return true;
 }
 
 boolean Camera::runCommand(uint8_t cmd, uint8_t *args, uint8_t argn,
@@ -114,12 +107,12 @@ boolean Camera::runCommand(uint8_t cmd, uint8_t *args, uint8_t argn,
 }
 
 void Camera::sendCommand(uint8_t cmd, uint8_t args[] = 0, uint8_t argn = 0) {
-	hwSerial->print(0x56, BYTE);
-	hwSerial->print(serialNum, BYTE);
-	hwSerial->print(cmd, BYTE);
+	Serial1.print(0x56, BYTE);
+	Serial1.print(serialNum, BYTE);
+	Serial1.print(cmd, BYTE);
 
 	for (uint8_t i = 0; i < argn; i++) {
-		hwSerial->print(args[i], BYTE);
+		Serial1.print(args[i], BYTE);
 	}
 }
 
@@ -128,14 +121,14 @@ uint8_t Camera::readResponse(uint8_t numbytes, uint8_t timeout) {
 	bufferLen = 0;
 	int avail;
 	while ((timeout != counter) && (bufferLen != numbytes)) {
-		avail = hwSerial->available();
+		avail = Serial1.available();
 		if (avail <= 0) {
 			delay(1);
 			counter++;
 			continue;
 		}
 		counter = 0;
-		camerabuff[bufferLen++] = hwSerial->read();
+		camerabuff[bufferLen++] = Serial1.read();
 	}
 	return bufferLen;
 }

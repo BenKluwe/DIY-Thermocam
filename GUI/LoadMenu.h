@@ -43,7 +43,7 @@ void displayGUI(int imgCount, char* infoText) {
 /* Asks the user if he wants to delete the video */
 void deleteVideo(char* dirname) {
 	//Title & Background
-	drawTitle((char*) "Delete Video");
+	drawTitle((char*) "Delete Video", true);
 	display.setColor(VGA_BLACK);
 	display.setFont(smallFont);
 	display.setBackColor(200, 200, 200);
@@ -120,7 +120,7 @@ void deleteVideo(char* dirname) {
 /* Asks the user if he wants to delete the image */
 void deleteImage(char* filename) {
 	//Title & Background
-	drawTitle((char*) "Delete Image");
+	drawTitle((char*) "Delete Image", true);
 	display.setColor(VGA_BLACK);
 	display.setFont(smallFont);
 	display.setBackColor(200, 200, 200);
@@ -325,7 +325,7 @@ void openImage(char* filename, int imgCount) {
 
 	//Display GUI
 	displayGUI(imgCount, nameStr);
-	
+
 	//Attach interrupt
 	attachInterrupt(pin_touch_irq, loadTouchIRQ, FALLING);
 
@@ -363,37 +363,88 @@ uint16_t getVideoFrameNumber(char* dirname) {
 	return videoCounter;
 }
 
+/* Display the selected video frame */
+void displayVideoFrame(int i, char* dirname)
+{
+	char filename[] = "00000.DAT";
+
+	//Get the frame name
+	frameFilename(filename, i);
+
+	//Load Raw data
+	loadRawData(filename, dirname);
+
+	//Display Raw Data
+	displayRawData();
+}
+
 /* Play a video from the internal storage */
 void playVideo(char* dirname, int imgCount) {
-	//Help variables
-	uint16_t numberOfFrames = getVideoFrameNumber(dirname);
-	char filename[] = "00000.DAT";
 	char buffer[14];
-	
+	//Save the current frame number
+	int frameNumber = 0;
+
+	//Get the total number of frames in the dir
+	uint16_t numberOfFrames = getVideoFrameNumber(dirname);
+
+	//Jump here when pausing a video
+	showFrame:
+	//Display frame
+	displayVideoFrame(frameNumber, dirname);
+	//Create string
+	sprintf(buffer, "%5d / %-5d", frameNumber + 1, numberOfFrames);
+	//Display GUI
+	displayGUI(imgCount, buffer);
+	//Display play message
+	display.setFont(bigFont);
+	display.print((char*) "Play", CENTER, 110);
+	display.setFont(smallFont);
+
+	//Repeat until we get a valid touch
+	do {
+		//Wait for touch press
+		while (!touch.touched());
+		//Interpret touch coordinates
+		loadTouchIRQ();
+	} while (loadTouch == loadTouch_none);
+
+	//Wait for touch to release
+	while (touch.touched());
+
+	//Check if we play the video
+	if (loadTouch != loadTouch_middle)
+		return;
+	loadTouch = loadTouch_none;
+
 	//Play forever
 	while (true) {
 		//Go through the frames
-		for (int i = 0; i < numberOfFrames; i++) {
-			//Get the frame name
-			frameFilename(filename, i);
-
-			//Load Raw data
-			loadRawData(filename, dirname);
-
-			//Display Raw Data
-			displayRawData();
-
-			//Create string
-			sprintf(buffer, "%5d / %-5d", i + 1, numberOfFrames);
-			//Display GUI
-			displayGUI(imgCount, buffer);
-
+		for (; frameNumber < numberOfFrames; frameNumber++) {
 			//Check for touch press
 			if (touch.touched())
+				//Get touch function
 				loadTouchIRQ();
+			//Pause the video
+			if (loadTouch == loadTouch_middle)
+			{
+				//Wait for touch release
+				while (touch.touched());
+				//Display the static frame
+				goto showFrame;
+			}
+			//Any other action
 			if (loadTouch != loadTouch_none)
 				return;
+
+			//Display frame
+			displayVideoFrame(frameNumber, dirname);
+			//Create string
+			sprintf(buffer, "%5d / %-5d", frameNumber + 1, numberOfFrames);
+			//Display GUI
+			displayGUI(imgCount, buffer);
 		}
+		//Reset frame number for next play
+		frameNumber = 0;
 	}
 }
 

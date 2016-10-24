@@ -91,8 +91,6 @@ void initSD() {
 		startAltClockline();
 		//Check if the sd card works
 		if (!sd.begin(pin_sd_cs, SPI_FULL_SPEED)) {
-			showFullMessage((char*) "Init SD card failed!");
-			delay(1000);
 			setDiagnostic(diag_sd);
 		}
 		else

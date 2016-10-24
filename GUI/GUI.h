@@ -39,17 +39,19 @@ void setTextColor() {
 }
 
 /* Shows a transparent message in live mode */
-void showTransMessage(char* msg, bool bottom) {
-	//Set Text Color
+void showTransMessage(char* msg) {
+	//Set text color
 	setTextColor();
-	//set Background transparent
+	//Set background transparent
 	display.setBackColor(VGA_TRANSPARENT);
-	//Give the user a hint that it tries to save
+	//Display to screen in big font
 	display.setFont(bigFont);
-	if (bottom)
-		display.print(msg, CENTER, 170);
-	else
+	//Display higher if spot is enabled
+	if(spotEnabled)
 		display.print(msg, CENTER, 70);
+	else
+	display.print(msg, CENTER, 110);
+	//Switch back to small font
 	display.setFont(smallFont);
 	//Wait some time to read the text
 	delay(1000);
@@ -155,21 +157,8 @@ void showDiagnostic() {
 
 /* Show the save message on the screen */
 void showSaveMessage() {
-	//Thermal only
-	if (displayMode == displayMode_thermal) {
-		if (!convertEnabled)
-			showTransMessage((char*) "Save Thermal Raw..");
-		else
-			showTransMessage((char*) "Save Thermal BMP..");
-	}
-	//Visual only
-	else if (displayMode == displayMode_visual) {
-		showTransMessage((char*) "Save Visual BMP..");
-	}
-	//Combined
-	else if (displayMode == displayMode_combined) {
-		showTransMessage((char*) "Save Combined BMP..");
-	}
+	//Show message
+	showTransMessage((char*) "Saving..");
 	//Set marker to create image
 	imgSave = imgSave_create;
 }

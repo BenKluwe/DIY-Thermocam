@@ -1,7 +1,7 @@
 #ifndef UTFT_h
 #define UTFT_h
 
-#define SPICLOCK 40000000
+#define SPICLOCK 30000000
 
 #define LEFT 0
 #define RIGHT 9999

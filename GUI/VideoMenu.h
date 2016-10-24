@@ -132,7 +132,7 @@ bool videoIntervalHandler(byte* pos) {
 
 /* Start video menu to choose interval */
 bool videoIntervalChooser() {
-	bool rtn = 0;
+	bool rtn;
 	static byte videoIntervalPos = 0;
 	//Background
 	mainMenuBackground();
@@ -192,8 +192,8 @@ void videoCaptureInterval(int16_t* remainingTime, uint16_t* framesCaptured, char
 		display.setFont(bigFont);
 		display.print((char*) "Interval capture", CENTER, 20);
 
-		//Save visual image if activated
-		if ((visualEnabled) && (videoInterval >= 10)) {
+		//Save visual image if activated and camera connected
+		if ((visualEnabled) && (videoInterval >= 10) && checkDiagnostic(diag_camera)) {
 			//Display message
 			sprintf(buffer, "Saving thermal + visual now!");
 			display.setFont(smallFont);
@@ -244,16 +244,15 @@ void videoCaptureInterval(int16_t* remainingTime, uint16_t* framesCaptured, char
 /* Normal video capture */
 void videoCaptureNormal(char* dirname, uint16_t* framesCaptured) {
 	char buffer[30];
-
 	//Save video raw frame
 	saveRawData(false, dirname, *framesCaptured);
-	//Raise capture counter
-	*framesCaptured = *framesCaptured + 1;
 	//Refresh capture
 	refreshCapture();
 	//Display title
 	display.setFont(bigFont);
 	display.print((char*) "Video capture", CENTER, 20);
+	//Raise capture counter
+	*framesCaptured = *framesCaptured + 1;
 	//Display current frames captured
 	display.setFont(smallFont);
 	sprintf(buffer, "Frames captured: %5d", *framesCaptured);
@@ -389,7 +388,7 @@ redraw:
 
 	//Touch handler
 	while (true) {
-		
+
 		//If touch pressed
 		if (touch.touched() == true) {
 			int pressedButton = touchButtons.checkButtons(true);
