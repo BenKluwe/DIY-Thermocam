@@ -448,7 +448,7 @@ void fillEdges() {
 		}
 
 		//Bottom edge
-		for (y = 119; y >(119 - (5 * adjCombUp)); y--) {
+		for (y = 119; y > (119 - (5 * adjCombUp)); y--) {
 			calcFillPixel(x, y);
 		}
 	}
@@ -461,7 +461,7 @@ void fillEdges() {
 		}
 
 		//Right edge
-		for (x = 159; x >(159 - (5 * adjCombLeft)); x--) {
+		for (x = 159; x > (159 - (5 * adjCombLeft)); x--) {
 			calcFillPixel(x, y);
 		}
 	}

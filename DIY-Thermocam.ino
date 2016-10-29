@@ -15,8 +15,8 @@
 
 /* Current firmware version */
 
-#define Version "Firmware 2.20 from 29.10.2016"
-#define fwVersion 220
+#define Version "Firmware 2.19 from 29.10.2016"
+#define fwVersion 219
 
 /* External Libraries */
 #include <ADC.h>
