@@ -131,9 +131,19 @@ void refreshTempPoints() {
 	}
 }
 
+/* Reset the SPI bus to re-initiate Lepton communication */
+void resetLeptonSPIBus() {
+	//End Lepton SPI
+	leptonEndSPI();
+	//Short delay
+	delay(186);
+	//Begin Lepton SPI
+	leptonBeginSPI();
+}
+
 /* Get one image from the Lepton module */
 void getTemperatures() {
-	byte leptonError, segmentNumbers, line;
+	byte leptonError, segmentNumbers, line, row;
 	//For Lepton2 sensor, get only one segment per frame
 	if (leptonVersion != leptonVersion_3_Shutter)
 		segmentNumbers = 1;
@@ -143,49 +153,82 @@ void getTemperatures() {
 	//Begin SPI transmission
 	leptonBeginSPI();
 	for (byte segment = 1; segment <= segmentNumbers; segment++) {
+		// reset error count per segment
 		leptonError = 0;
-		do {
-			for (line = 0; line < 60; line++) {
-				//If line matches expectation
-				if (leptonReadFrame(line, segment)) {
-					if (!savePackage(line, segment)) {
-						//Stabilize framerate
-						delayMicroseconds(800);
-						//Raise lepton error
-						leptonError++;
-						break;
-					}
-				}
-				//Reset if the expected line does not match the answer
-				else {
-					if (leptonError == 255) {
-						//If show menu was entered
-						if (showMenu) {
-							leptonEndSPI();
-							return;
-						}
-						//Reset segment
-						segment = 1;
-						//Reset lepton error
-						leptonError = 0;
-						//End Lepton SPI
-						leptonEndSPI();
-						//Short delay
-						delay(186);
-						//Begin Lepton SPI
-						leptonBeginSPI();
-						break;
-					}
-					else {
-						//Stabilize framerate
-						delayMicroseconds(800);
-						//Raise lepton error
-						leptonError++;
-						break;
-					}
-				}
+
+		// this is a label to reset the line number to 0
+	frameLoop:
+		line = 0;
+		while (line < 60) {
+			//If show menu was entered
+			if (showMenu) {
+				leptonEndSPI();
+				return;
 			}
-		} while (line != 60);
+
+			row = line;
+			switch (leptonReadFrame(&row, segment)) {
+				//line matched the received row number
+			case NONE:
+				if (!savePackage(line, segment)) {
+					//Stabilize framerate
+					delayMicroseconds(800);
+					//Raise lepton error
+					leptonError++;
+				}
+				line++;
+
+				//Discard packet received
+			case DISCARD:
+				//Wait for next valid packet
+				break;
+
+				//line did not match received row number
+			case ROW_ERROR:
+				if (leptonError == 255) {
+					//Reset segment
+					segment = 1;
+					//Reset lepton error
+					leptonError = 0;
+					//Reset the VOSPI stream
+					resetLeptonSPIBus();
+				}
+				else {
+					//Stabilize framerate
+					delayMicroseconds(800);
+					//Raise lepton error
+					leptonError++;
+				}
+				goto frameLoop;
+
+				//Received wrong segment number
+			case SEGMENT_ERROR:
+				//Reset segment
+				segment = 1;
+				//Reset lepton error
+				leptonError = 0;
+				//Reset the VOSPI stream
+				resetLeptonSPIBus();
+				goto frameLoop;
+
+				//Received segment number outside of 1-4 (typically 0)
+			case SEGMENT_INVALID:
+				//Wait for all rows to pass or a discard packet
+				while (row < 60) {
+					//If show menu was entered
+					if (showMenu) {
+						leptonEndSPI();
+						return;
+					}
+
+					switch (leptonReadFrame(&row, segment)) {
+					case DISCARD: goto frameLoop;
+					default: row++; break;
+					}
+				}
+				goto frameLoop;
+			}
+		}
 	}
 	//End Lepton SPI
 	leptonEndSPI();
@@ -405,7 +448,7 @@ void fillEdges() {
 		}
 
 		//Bottom edge
-		for (y = 119; y > (119 - (5 * adjCombUp)); y--) {
+		for (y = 119; y >(119 - (5 * adjCombUp)); y--) {
 			calcFillPixel(x, y);
 		}
 	}
@@ -418,7 +461,7 @@ void fillEdges() {
 		}
 
 		//Right edge
-		for (x = 159; x > (159 - (5 * adjCombLeft)); x--) {
+		for (x = 159; x >(159 - (5 * adjCombLeft)); x--) {
 			calcFillPixel(x, y);
 		}
 	}

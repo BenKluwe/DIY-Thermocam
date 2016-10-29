@@ -5,3 +5,13 @@
 /.vs/DIY-Thermocam/v14
 /Release
 /__vm
+/MSD/DIY-Thermocam.ino.hex
+/MSD/Firmware.hex
+/x64/Release/DIY-Thermocam.ino.hex
+/x64/Release/DIY-Thermocam.ino.elf
+/x64/Release/DIY-Thermocam.hex
+/x64/Release/DIY-Thermocam.elf
+/x64/Release/DIY-Thermocam.cpp.o
+/x64/Release/DIY-Thermocam.cpp.d
+/x64/Release/core.a
+/x64/Release/board.buildinfo

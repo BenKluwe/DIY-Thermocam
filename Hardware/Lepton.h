@@ -13,6 +13,11 @@
 *
 */
 
+/* Lepton Frame Error Return */
+enum LeptonReadError {
+	NONE, DISCARD, SEGMENT_ERROR, ROW_ERROR, SEGMENT_INVALID
+};
+
 /* Variables */
 //Array to store one Lepton frame
 byte leptonFrame[164];
@@ -46,24 +51,26 @@ void leptonEndSPI() {
 }
 
 /* Reads one line (164 Bytes) from the lepton over SPI */
-bool leptonReadFrame(byte line, byte seg) {
+LeptonReadError leptonReadFrame(byte *line, byte seg) {
 	//Receive one frame over SPI
 	SPI.transfer(leptonFrame, 164);
 	//Repeat as long as the frame is not valid, equals sync
 	if ((leptonFrame[0] & 0x0F) == 0x0F) {
-		return false;
+		return DISCARD;
 	}
 	//Check if the line number matches the expected line
-	if (leptonFrame[1] != line) {
-		return false;
+	if (leptonFrame[1] != *line) {
+		return ROW_ERROR;
 	}
 	//For the Lepton3, check if the segment number matches
-	if ((line == 20) && (leptonVersion == leptonVersion_3_Shutter)) {
+	if ((*line == 20) && (leptonVersion == leptonVersion_3_Shutter)) {
 		byte segment = (leptonFrame[0] >> 4);
+		if (segment == 0)
+			return SEGMENT_INVALID;
 		if (segment != seg)
-			return false;
+			return SEGMENT_ERROR;
 	}
-	return true;
+	return NONE;
 }
 
 /* Trigger a flat-field-correction on the Lepton */
